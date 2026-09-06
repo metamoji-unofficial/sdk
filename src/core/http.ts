@@ -135,11 +135,13 @@ export class MetamojiContext {
           return fail({
             name: "not_configured",
             message:
-              "No REST host. It comes from the login response — call auth.login() first, " +
-              "or set `restHost` in the client options.",
+              "No REST host. It is the tenant's own server — call auth.resolveSchool() with " +
+              "the school id first, or set `restHost` in the client options.",
           });
         }
-        return ok(joinUrl(c.restHost, path));
+        // Under the context root, not at the tenant's own root, where every
+        // one of these paths is a 404. See `DEFAULT_REST_BASE_PATH`.
+        return ok(joinUrl(joinUrl(c.restHost, c.restBasePath), path));
       case "home":
         if (!c.homeDir) {
           return fail({

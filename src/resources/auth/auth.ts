@@ -83,7 +83,11 @@ export class Auth {
 
   /**
    * Signs in with a user id or email address.
-   * `CsCloudService.executeLoginWithParam` — `POST {root}/users3/login`.
+   * `CsCloudService.executeLoginWithParam` — `POST {rest}/users3/login`.
+   *
+   * Against the tenant, not the bootstrap root: the root server serves no
+   * `users3/*` at all. So a school account calls `resolveSchool()` first, which
+   * is what supplies the host this then posts to.
    *
    * On success the client stores the session cookie, the returned `restHost`
    * and the identity fields the multipart subsystems re-send on every call.
@@ -91,7 +95,7 @@ export class Auth {
   async login(options: LoginOptions): Promise<Result<LoginResponse>> {
     const result = csEnvelope<LoginResponse>(
       await this.ctx.request({
-        base: "root",
+        base: "rest",
         path: "users3/login",
         method: "POST",
         json: this.ctx.csBody(options),
@@ -104,12 +108,12 @@ export class Auth {
   /**
    * Signs in as a ClassRoom account — the simplified pupil login, by class and
    * seat number rather than an email address.
-   * `executeClassRoomLoginWithParam` — `POST {root}/users3/classroomlogin`.
+   * `executeClassRoomLoginWithParam` — `POST {rest}/users3/classroomlogin`.
    */
   async classroomLogin(options: ClassroomLoginOptions): Promise<Result<LoginResponse>> {
     const result = csEnvelope<LoginResponse>(
       await this.ctx.request({
-        base: "root",
+        base: "rest",
         path: "users3/classroomlogin",
         method: "POST",
         json: this.ctx.csBody(options),
@@ -121,14 +125,14 @@ export class Auth {
 
   /**
    * The school and class list shown on the ClassRoom login screen.
-   * `executeGetClassRoomLoginInfoWithParam` — `POST {root}/users3/getclassroominfo`.
+   * `executeGetClassRoomLoginInfoWithParam` — `POST {rest}/users3/getclassroominfo`.
    */
   async getClassroomLoginInfo(
     options: ClassroomLoginInfoOptions = {},
   ): Promise<Result<ClassroomLoginInfoResponse>> {
     return csEnvelope(
       await this.ctx.request({
-        base: "root",
+        base: "rest",
         path: "users3/getclassroominfo",
         method: "POST",
         json: this.ctx.csBody(options),

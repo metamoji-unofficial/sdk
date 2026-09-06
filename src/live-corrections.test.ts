@@ -82,7 +82,7 @@ describe("finding a school", () => {
   it("says so when the code is not registered", async () => {
     // The servlet answers 200 with nothing in it.
     const { transport } = stub({ json: {} });
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://tenant.example/" });
     const { data, error } = await metamoji.auth.resolveSchool("NOPE");
     expect(data).toBeNull();
     expect(error?.message).toContain("NOPE");
@@ -93,7 +93,7 @@ describe("finding a school", () => {
       { json: { serverURL: "https://mps101.metamoji.com" } },
       { json: { errorCode: 0 } },
     ]);
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://tenant.example/" });
     await metamoji.auth.resolveSchool("MC896845");
     await metamoji.users.get();
     expect(sent[1].url).toContain("mps101.metamoji.com");
@@ -107,14 +107,14 @@ describe("signing in", () => {
     const { transport } = stub({
       json: { errorCode: 0, uuid: 213163099101, restHost: "https://mps101.metamoji.com/" },
     });
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://tenant.example/" });
     await metamoji.auth.login({ loginName: "23SQ8H", password: "…" });
     expect(metamoji.session.userId).toBe("213163099101");
   });
 
   it("still reads userId when a tenant sends that instead", async () => {
     const { transport } = stub({ json: { errorCode: 0, userId: "42" } });
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://tenant.example/" });
     await metamoji.auth.login({ loginName: "a", password: "b" });
     expect(metamoji.session.userId).toBe("42");
   });
@@ -253,5 +253,74 @@ describe("the classroom subsystem", () => {
       expect(code).toMatch(/^[1-9][0-9]*$/);
       expect(Number(code)).toBeLessThanOrEqual(0x7fff_ffff);
     }
+  });
+});
+
+describe("where a CsCloudService call actually goes", () => {
+  it("puts tenant calls under the context root", async () => {
+    // Probed against a live tenant:
+    //   POST {tenant}/users3/login              -> 404 (HTML)
+    //   POST {tenant}/mmjeditor2/2.0/users3/login -> the API envelope
+    // Every one of the ~110 tenant operations was addressed at the bare root
+    // and answered 404, so nothing in this subsystem worked at all.
+    const { transport, sent } = stub({ json: { errorCode: 0 } });
+    const metamoji = new Metamoji({ transport, restHost: "https://mps101.metamoji.com/" });
+
+    await metamoji.drives.getEntryInfo();
+
+    expect(sent[0].url).toBe("https://mps101.metamoji.com/mmjeditor2/2.0/drives/entryinfo");
+  });
+
+  it("leaves the bootstrap root server alone, which serves its two paths bare", async () => {
+    // The root is the other way round: `mpsroot/RequestServlet` answers there
+    // and 404s under the prefix.
+    const { transport, sent } = stub({ json: { serverURL: "https://mps101.metamoji.com" } });
+    const metamoji = new Metamoji({ transport });
+
+    await metamoji.auth.resolveSchool("MC896845");
+
+    expect(sent[0].url).toBe(
+      "https://mps.metamoji.com/mpsroot/RequestServlet?coLoginId=MC896845",
+    );
+  });
+
+  it("keeps cosmos on the tenant host but out of the context root", async () => {
+    //   POST {tenant}/cosmos/CreateUniqueID              -> reaches the service
+    //   POST {tenant}/mmjeditor2/2.0/cosmos/CreateUniqueID -> 404
+    const { transport, sent } = stub({ json: { result: true } });
+    const metamoji = new Metamoji({ transport, restHost: "https://mps101.metamoji.com/" });
+
+    await metamoji.rooms.createGuestId();
+
+    expect(sent[0].url).toBe("https://mps101.metamoji.com/cosmos/CreateUniqueID");
+  });
+
+  it("signs in against the tenant, not the bootstrap root", async () => {
+    // `POST {root}/users3/login` is a 404, with or without the prefix — the
+    // root server has no `users3/*` at all. The school lookup is what supplies
+    // the host, which is why it comes first.
+    const { transport, sent } = stub([
+      { json: { serverURL: "https://mps101.metamoji.com" } },
+      { json: { errorCode: 0, uuid: 1 } },
+    ]);
+    const metamoji = new Metamoji({ transport });
+
+    await metamoji.auth.resolveSchool("MC896845");
+    await metamoji.auth.login({ coLoginId: "MC896845", loginName: "a", password: "b" });
+
+    expect(sent[1].url).toBe("https://mps101.metamoji.com/mmjeditor2/2.0/users3/login");
+  });
+
+  it("lets a deployment that serves them at the root say so", async () => {
+    const { transport, sent } = stub({ json: { errorCode: 0 } });
+    const metamoji = new Metamoji({
+      transport,
+      restHost: "https://on-prem.example/",
+      restBasePath: "",
+    });
+
+    await metamoji.drives.getEntryInfo();
+
+    expect(sent[0].url).toBe("https://on-prem.example/drives/entryinfo");
   });
 });

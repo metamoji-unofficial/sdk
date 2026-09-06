@@ -51,7 +51,7 @@ describe("default transport", () => {
 
     expect(received).toHaveLength(1);
     expect(received[0].method).toBe("GET");
-    expect(received[0].url).toBe("/users2/login/user");
+    expect(received[0].url).toBe("/mmjeditor2/2.0/users2/login/user");
     expect(JSON.parse(received[0].body)).toMatchObject({ deviceName: "probe" });
     expect(received[0].headers["content-length"]).toBe(String(received[0].body.length));
     expect(received[0].headers["x-dm-productname"]).toBe("Android-Share-G-ClassRoom");
@@ -59,7 +59,7 @@ describe("default transport", () => {
 
   it("still uses fetch for everything else", async () => {
     received.length = 0;
-    const metamoji = new Metamoji({ rootServer: origin });
+    const metamoji = new Metamoji({ restHost: origin });
 
     await metamoji.auth.login({ loginName: "a", password: "b" });
     expect(received[0].method).toBe("POST");

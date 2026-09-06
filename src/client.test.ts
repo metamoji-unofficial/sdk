@@ -101,17 +101,20 @@ describe("auth", () => {
       },
       { json: { errorCode: 0, name: "Teacher" } },
     ]);
-    const metamoji = new Metamoji({ transport });
+    // The host a school lookup would have supplied; login itself is a tenant
+    // call, since the bootstrap root server serves no `users3/*` at all.
+    const metamoji = new Metamoji({ transport, restHost: "https://mps101.metamoji.com/" });
 
     const login = await metamoji.auth.login({ loginName: "teacher", password: "pw" });
     expect(login.error).toBeNull();
-    expect(sent[0].url).toBe("https://mps.metamoji.com/users3/login");
+    expect(sent[0].url).toBe("https://mps101.metamoji.com/mmjeditor2/2.0/users3/login");
     expect(metamoji.session.userId).toBe("u1");
     expect(metamoji.session.qwd).toBe("Q");
 
-    // The next call goes to the tenant host and still carries the session.
+    // The response redirects the client at the tenant it names, and the
+    // session travels there with it.
     await metamoji.users.get();
-    expect(sent[1].url).toBe("https://tenant7.metamoji.com/users2/login/user");
+    expect(sent[1].url).toBe("https://tenant7.metamoji.com/mmjeditor2/2.0/users2/login/user");
     expect(sent[1].headers.cookie).toBe("JSESSIONID=abc");
   });
 
@@ -119,6 +122,7 @@ describe("auth", () => {
     const { transport, sent } = stub({ json: { errorCode: 0 } });
     const metamoji = new Metamoji({
       transport,
+      restHost: "https://t.example/",
       locale: "en_US",
       deviceName: "test-device",
       timezone: "UTC",
@@ -142,7 +146,7 @@ describe("auth", () => {
     const { transport } = stub({
       json: { errorCode: 1234, errorName: "LOGIN_FAILED", errorMessage: "だめ" },
     });
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://t.example/" });
 
     const { data, error } = await metamoji.auth.login({ loginName: "a", password: "wrong" });
     expect(data).toBeNull();
@@ -188,7 +192,7 @@ describe("bodies on GET and DELETE", () => {
 
     await metamoji.drives.remove("d1");
     expect(sent[0].method).toBe("DELETE");
-    expect(sent[0].url).toBe("https://t.example/drives/d1/data");
+    expect(sent[0].url).toBe("https://t.example/mmjeditor2/2.0/drives/d1/data");
     expect(JSON.parse(sent[0].bodyText).driveId).toBe("d1");
   });
 });
@@ -222,7 +226,11 @@ describe("sync (SdCloudService)", () => {
       { json: { errorCode: 0 }, setCookie: ["SD=sd"] },
       { json: { errorCode: 0 } },
     ]);
-    const metamoji = new Metamoji({ transport, homeDir: "https://t.example/" });
+    const metamoji = new Metamoji({
+      transport,
+      restHost: "https://t.example/",
+      homeDir: "https://t.example/",
+    });
 
     await metamoji.auth.login({ loginName: "a", password: "b" });
     await metamoji.sync.login();
@@ -660,7 +668,7 @@ describe("errors", () => {
     const transport: Transport = async () => {
       throw new Error("socket hang up");
     };
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://t.example/" });
 
     const { data, error } = await metamoji.auth.login({ loginName: "a" });
     expect(data).toBeNull();
@@ -669,7 +677,7 @@ describe("errors", () => {
 
   it("reports a non-2xx status with the server's message", async () => {
     const { transport } = stub({ status: 500, json: { errorMessage: "boom" } });
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://t.example/" });
 
     const { error } = await metamoji.auth.login({ loginName: "a" });
     expect(error).toMatchObject({ name: "http_error", statusCode: 500 });
@@ -691,7 +699,7 @@ describe("maintenance notices", () => {
       { text: "" },
       { text: "" },
     ]);
-    const metamoji = new Metamoji({ transport });
+    const metamoji = new Metamoji({ transport, restHost: "https://t.example/" });
 
     await metamoji.auth.login({ loginName: "a", password: "b" });
     await metamoji.drives.getHome("d1");
