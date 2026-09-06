@@ -13,6 +13,9 @@ on:
         type: boolean
 
 permissions:
+  # OIDC のトークンを発行させるのに要る。これが無いと npm は資格情報を
+  # 一つも見つけられず ENEEDAUTH で止まる。
+  id-token: write
   contents: read
 
 concurrency:
@@ -30,12 +33,24 @@ jobs:
         with:
           bun-version: latest
 
-      # setup-node は publish に必要な .npmrc (registry + NODE_AUTH_TOKEN) を書く。
+      # Trusted Publishing (OIDC) は npm 11.5.1 以降でしか動かない。
+      # Node 22 に付いてくる npm は 10 系なので、24 にする。
       # 依存の解決は bun.lock があるので bun 側に任せる。
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
+
+      - name: Check npm supports trusted publishing
+        run: |
+          set -euo pipefail
+          version=$(npm --version)
+          required=11.5.1
+          echo "npm $version"
+          if [ "$(printf '%s\n%s\n' "$required" "$version" | sort -V | head -1)" != "$required" ]; then
+            echo "::error::npm $version は Trusted Publishing (OIDC) 非対応です。$required 以上が要ります" >&2
+            exit 1
+          fi
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -81,9 +96,11 @@ jobs:
 
       - name: Publish
         if: steps.published.outputs.already == 'false'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          # スコープ付きパッケージ (@metamoji/sdk) は既定で private 扱いになる。
+          # トークンは渡さない。Trusted Publishing は OIDC で認証するので、
+          # NODE_AUTH_TOKEN を置くと空の _authToken が優先されて ENEEDAUTH になる。
+          # provenance も OIDC 経由なら自動で付くため --provenance は要らない。
+          # --access public はスコープ付き (@metamoji/sdk) が既定で private
+          # 扱いになるため。
           npm publish --access public ${{ inputs.dry_run && '--dry-run' || '' }}
