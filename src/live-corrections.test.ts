@@ -18,7 +18,13 @@ interface Recorded extends TransportRequest {
   bodyText: string;
 }
 
-function stub(replies: Array<{ status?: number; json?: unknown }> | { status?: number; json?: unknown } = {}) {
+interface Reply {
+  status?: number;
+  json?: unknown;
+  bytes?: Uint8Array;
+}
+
+function stub(replies: Reply[] | Reply = {}) {
   const queue = Array.isArray(replies) ? [...replies] : [replies];
   const sent: Recorded[] = [];
   const transport: Transport = async (request) => {
@@ -37,6 +43,9 @@ function stub(replies: Array<{ status?: number; json?: unknown }> | { status?: n
     if (reply.json !== undefined) {
       headers["content-type"] = "application/json";
       body = new TextEncoder().encode(JSON.stringify(reply.json));
+    } else if (reply.bytes !== undefined) {
+      headers["content-type"] = "application/octet-stream";
+      body = reply.bytes;
     }
     const response: TransportResponse = {
       status: reply.status ?? 200,
@@ -322,5 +331,134 @@ describe("where a CsCloudService call actually goes", () => {
     await metamoji.drives.getEntryInfo();
 
     expect(sent[0].url).toBe("https://on-prem.example/drives/entryinfo");
+  });
+});
+
+/**
+ * A lapsed session, verbatim from a signed-out live request. It arrives with a
+ * 500 from `users2/login/user` and a 401 from `users3/crbox/get/joincode` — the
+ * status varies, the body does not.
+ */
+const LAPSED = {
+  name: "NotLoginException",
+  message: "It doesn't log it in.",
+  data: { errorCode: 106 },
+};
+
+const LOGIN_OK = { uuid: "u-1", loginName: "student01", restHost: "https://mps101.metamoji.com/" };
+
+describe("a lapsed CsCloudService session", () => {
+  it("reports the code rather than a bare HTTP 500", async () => {
+    // `csEnvelope` looked for a flat `errorCode` on a 2xx body. Signed out, the
+    // server sends neither: the code is nested under `data` and the status is
+    // 500. Every lapsed session then read as a server fault, which is not
+    // something a caller can act on — and 106 is the one error that has an
+    // obvious remedy.
+    const { transport } = stub({ status: 500, json: LAPSED });
+    const metamoji = new Metamoji({ transport, restHost: "https://mps101.metamoji.com/" });
+
+    const { error } = await metamoji.users.get();
+
+    expect(error?.code).toBe(106);
+    expect(error?.name).toBe("NotLoginException");
+    expect(error?.message).toBe("It doesn't log it in.");
+  });
+
+  it("signs in again and retries once, as executeWithAutoLoginFor does", async () => {
+    const { transport, sent } = stub([
+      { status: 200, json: LOGIN_OK },              // the initial login
+      { status: 500, json: LAPSED },                // the call, session expired
+      { status: 200, json: LOGIN_OK },              // signing back in
+      { status: 200, json: { errorCode: 0, userId: "u-1" } }, // the retry
+    ]);
+    const metamoji = new Metamoji({ transport, restHost: "https://tenant.example/" });
+    await metamoji.auth.login({ coLoginId: "school", loginName: "a", password: "b" });
+
+    const { data, error } = await metamoji.users.get();
+
+    expect(error).toBeNull();
+    expect(data?.userId).toBe("u-1");
+    expect(sent.map((r) => new URL(r.url).pathname)).toEqual([
+      "/mmjeditor2/2.0/users3/login",
+      "/mmjeditor2/2.0/users2/login/user",
+      "/mmjeditor2/2.0/users3/login",
+      "/mmjeditor2/2.0/users2/login/user",
+    ]);
+  });
+
+  it("does not retry for a client that was handed a session rather than a login", async () => {
+    // Nothing to sign in with, so the only thing a retry could achieve is a
+    // second identical failure.
+    const { transport, sent } = stub({ status: 500, json: LAPSED });
+    const metamoji = new Metamoji({
+      transport,
+      restHost: "https://mps101.metamoji.com/",
+      session: { userId: "u-1" },
+    });
+
+    const { error } = await metamoji.users.get();
+
+    expect(error?.code).toBe(106);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("stops retrying once the caller has signed out", async () => {
+    const { transport, sent } = stub([
+      { status: 200, json: LOGIN_OK },
+      { status: 200, json: { errorCode: 0 } },  // logout
+      { status: 500, json: LAPSED },            // a later call
+    ]);
+    const metamoji = new Metamoji({ transport, restHost: "https://tenant.example/" });
+    await metamoji.auth.login({ coLoginId: "school", loginName: "a", password: "b" });
+    await metamoji.auth.logout();
+    sent.length = 0;
+
+    await metamoji.users.get();
+
+    expect(sent).toHaveLength(1);
+  });
+
+  it("leaves an unrecognisable 500 alone", async () => {
+    const { transport, sent } = stub([
+      { status: 200, json: LOGIN_OK },
+      { status: 500, json: { message: "gateway is on fire" } },
+    ]);
+    const metamoji = new Metamoji({ transport, restHost: "https://tenant.example/" });
+    await metamoji.auth.login({ coLoginId: "school", loginName: "a", password: "b" });
+    sent.length = 0;
+
+    const { error } = await metamoji.users.get();
+
+    expect(error?.statusCode).toBe(500);
+    expect(sent).toHaveLength(1);
+  });
+});
+
+describe("a lapsed SdCloudService session on a download", () => {
+  it("signs in again, as it already did for every other sync call", async () => {
+    // `download` handed a transport-level failure straight back, so the nested
+    // code never became `error.code` and the retry never fired. A note download
+    // met a lapsed session and simply failed, while `getDocumentMeta` on the
+    // same session recovered.
+    const { transport, sent } = stub([
+      { status: 500, json: { name: "NotLoginException", data: { errorCode: 0x2af9 } } },
+      { status: 200, json: { errorCode: 0 } },                 // the re-login
+      { status: 200, bytes: new Uint8Array([1, 2, 3]) },       // the retry
+    ]);
+    const metamoji = new Metamoji({
+      transport,
+      homeDir: "https://drive.example/",
+      session: { userId: "u-1", password: "b" },
+    });
+
+    const { data, error } = await metamoji.sync.getDocumentData("D", "DOC");
+
+    expect(error).toBeNull();
+    expect(data?.bytes).toEqual(new Uint8Array([1, 2, 3]));
+    expect(sent.map((r) => new URL(r.url).pathname)).toEqual([
+      "/rest/drives/D/documents/DOC/data",
+      "/rest/users/login",
+      "/rest/drives/D/documents/DOC/data",
+    ]);
   });
 });

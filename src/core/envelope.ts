@@ -16,6 +16,15 @@ import { fail, ok, type MetamojiError, type Result } from "./result.js";
 
 /** `SdCloudServiceErrorCode.NOT_LOGIN_EXCEPTION`; triggers the sync auto-login. */
 export const SD_NOT_LOGIN = 0x2af9;
+/**
+ * `CsCloudServiceErrorCode.NOT_LOGIN_EXCEPTION`; triggers the main auto-login.
+ *
+ * Routine rather than fatal — the server expires sessions on its own schedule,
+ * so any call can meet this. `executeWithAutoLoginFor` answers it by signing in
+ * again and retrying once (docs/typespec/README.md), which is what
+ * `MetamojiContext` does when a login has left it something to sign in with.
+ */
+export const CS_NOT_LOGIN = 0x6a;
 /** `SdCloudServiceErrorCode` revision conflict — the caller's revision is stale. */
 export const SD_REVISION_CONFLICT = 0x2afa;
 /** The legacy store's "you need a session" code; triggers a guest login. */
@@ -55,7 +64,16 @@ function missingBody(http: HttpResult): MetamojiError {
  * anything else is an error carrying `errorName` / `errorMessage` / `errorData`.
  */
 export function csEnvelope<T>(result: Result<HttpResult>): Result<T> {
-  if (result.error) return fail(result.error);
+  if (result.error) {
+    // Not every `CsCloudService` error arrives in the flat shape below. A
+    // lapsed session comes back as HTTP 401 *or* 500 carrying
+    // `{"name":"NotLoginException","data":{"errorCode":106}}` — nested, like
+    // the drive service. Read it, so the caller gets `code: 106` and a usable
+    // message instead of a bare "HTTP 500".
+    const nested = readNestedError(result.error.data);
+    if (nested) return fail({ ...nested, statusCode: result.error.statusCode, data: result.error.data });
+    return fail(result.error);
+  }
   const http = result.data;
   const body = http.json;
   if (body === undefined) return fail(missingBody(http));
@@ -97,7 +115,7 @@ export function csEnvelope<T>(result: Result<HttpResult>): Result<T> {
  */
 export function sdEnvelope<T>(result: Result<HttpResult>): Result<T> {
   const body = result.error ? result.error.data : result.data?.json;
-  const nested = readSdError(body);
+  const nested = readNestedError(body);
   if (nested) {
     return fail({
       ...nested,
@@ -109,7 +127,7 @@ export function sdEnvelope<T>(result: Result<HttpResult>): Result<T> {
 }
 
 /** The `{name, message, data: {errorCode}}` envelope, flat form accepted too. */
-function readSdError(
+function readNestedError(
   body: unknown,
 ): { name: string; message: string; code?: number } | undefined {
   if (typeof body !== "object" || body === null) return undefined;

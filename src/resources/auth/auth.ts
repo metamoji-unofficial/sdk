@@ -101,7 +101,10 @@ export class Auth {
         json: this.ctx.csBody(options),
       }),
     );
-    if (result.data) this.adoptSession(result.data, options.password);
+    if (result.data) {
+      this.adoptSession(result.data, options.password);
+      this.rememberHowToReturn(options.password, () => this.login(options));
+    }
     return result;
   }
 
@@ -119,7 +122,10 @@ export class Auth {
         json: this.ctx.csBody(options),
       }),
     );
-    if (result.data) this.adoptSession(result.data, options.password);
+    if (result.data) {
+      this.adoptSession(result.data, options.password);
+      this.rememberHowToReturn(options.password, () => this.classroomLogin(options));
+    }
     return result;
   }
 
@@ -155,6 +161,8 @@ export class Auth {
       }),
     );
     this.ctx.cookies.clear("cs");
+    // Signing out is deliberate. Nothing should quietly sign back in.
+    this.ctx.onSessionLapsed(undefined);
     return result;
   }
 
@@ -278,6 +286,23 @@ export class Auth {
         json: this.ctx.csBody(options),
       }),
     );
+  }
+
+  /**
+   * Arranges for a lapsed session to be signed back in, the way
+   * `executeWithAutoLoginFor` does.
+   *
+   * Only with a password: it is the one credential `/users3/login` accepts, and
+   * a client that was handed a session rather than a login has nothing to
+   * repeat. Storing the whole call rather than the fields keeps the two login
+   * kinds — normal and ClassRoom — from having to be told apart again later.
+   */
+  private rememberHowToReturn(
+    password: string | undefined,
+    signIn: () => Promise<Result<LoginResponse>>,
+  ): void {
+    if (!password) return;
+    this.ctx.onSessionLapsed(async () => (await signIn()).error === null);
   }
 
   /** Copies a login response into the client's host and identity state. */
