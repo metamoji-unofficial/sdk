@@ -1,6 +1,6 @@
 {
   "name": "@metamoji/sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "TypeScript SDK for the MetaMoji ClassShare cloud API",
   "type": "module",
   "main": "./dist/index.js",
