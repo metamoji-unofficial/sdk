@@ -1,5 +1,5 @@
 {
-  "name": "sdk",
+  "name": "@metamoji/sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for the MetaMoji ClassShare cloud API",
   "type": "module",

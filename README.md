@@ -1,18 +1,14 @@
-# metamoji-api
+# @metamoji/sdk
 
 MetaMoji ClassShare クラウドAPI の TypeScript クライアント。
-[`docs/typespec`](../docs/typespec) の全 **131 オペレーション**を Resend 風の
+[`docs/typespec`]( https://github.com/unischool-sg/metamoji) の全 **131 オペレーション**を Resend 風の
 リソース指向インターフェースで網羅しています。
 
-> ⚠️ **非公式**。元になった `docs/typespec` 自体が
-> `com.metamoji.share_classroom` 3.15.1.0 (APK) の smali をリバースエンジニアリング
-> して再構築した推測込みのドキュメントです。MetaMoji社の公式仕様ではなく、実サーバーの
-> 挙動と一致する保証もありません。利用は自己責任で。
 
 ## 使い方
 
 ```ts
-import { Metamoji } from "metamoji-api";
+import { Metamoji } from "@metamoji/sdk";
 
 const metamoji = new Metamoji({ locale: "ja_JP" });
 
@@ -66,6 +62,40 @@ data.driveId;           // ここでは data は非 null に絞り込まれて�
 | `system` | メンテナンス情報・操作ログ | `CsCloudService` |
 | `libraryStore` | レガシーコンテンツストア | `com.metamoji.lb` |
 | `converter` | リモートファイル変換 (到達不能) | `com.metamoji.rc` |
+
+## プロジェクト構成
+
+リソースごとにディレクトリを切り、**型定義と呼び出しの実装を別ファイル**にしています。
+
+```
+src/
+  client.ts              Metamoji クラス (リソースの組み立てのみ)
+  index.ts               公開API (クラス・型・定数の再エクスポート)
+  core/
+    config.ts            設定の型・既定値・解決
+    url.ts               ベースURLとパス/クエリの組み立て
+    transport.ts         fetch / node:http トランスポート
+    http.ts              リクエストパイプライン (MetamojiContext)
+    cookies.ts           スコープ付きCookieジャー
+    multipart.ts         multipart/form-data の組み立て
+    envelope.ts          サブシステムごとのレスポンス封筒 → Result
+    result.ts            Result / MetamojiError
+    types.ts             共通モデル (common.tsp 由来)
+    xml.ts               WebDAV マルチステータス用の最小XMLパーサ
+    md5.ts               ライセンス認証の改ざん検知用
+  resources/
+    auth/
+      interfaces.ts      LoginOptions / LoginResponse ... (型だけ)
+      auth.ts            Auth クラス (呼び出しだけ)
+    drives/ sync/ webdav/ rooms/ media/ video/ ... (同じ構成)
+```
+
+型は `metamoji-api` のルートから全て再エクスポートしているので、利用側は
+サブパスを意識する必要はありません。
+
+```ts
+import type { LoginOptions, WebDavItem, NsRoomInfo } from "metamoji-api";
+```
 
 ## 設計上、知っておくとよいこと
 
