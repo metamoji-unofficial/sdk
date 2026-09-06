@@ -1,7 +1,7 @@
 {
-  "name": "metamoji-api",
+  "name": "sdk",
   "version": "0.1.0",
-  "description": "Resend-style TypeScript client for the (unofficial, reverse-engineered) MetaMoji ClassShare cloud API",
+  "description": "TypeScript SDK for the MetaMoji ClassShare cloud API",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
