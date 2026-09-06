@@ -16,57 +16,22 @@
  * than an error, since it is the expected answer while polling.
  */
 
-import { rcEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import { filePart, type MultipartPart } from "../core/multipart.js";
-import { fail, ok, type Result } from "../core/result.js";
-import type { FileUpload } from "../core/types.js";
+import { rcEnvelope } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import { filePart, type MultipartPart } from "../../core/multipart.js";
+import { fail, ok, type Result } from "../../core/result.js";
+import type {
+  ConvertRequestOptions,
+  ConvertedFile,
+  RcRegisterResponse,
+  RcResponseBase,
+  RegisterJobOptions,
+} from "./interfaces.js";
 
 /** `"100"`: the job is queued or running. */
 export const RC_CONVERTING = "100";
 /** `"14"` from `register`: the account has no licence for conversion. */
 export const RC_NO_LICENSE = "14";
-
-export interface RcResponseBase {
-  /** `"0"` is success. Note the string, not a number. */
-  errorCode?: string;
-  errorMessage?: string;
-  [key: string]: unknown;
-}
-
-export interface RcRegisterResponse extends RcResponseBase {
-  jobId1?: string;
-  jobId2?: string;
-}
-
-export interface RegisterJobOptions {
-  userId?: string;
-  password?: string;
-  productVersion?: string;
-  timeZone?: string;
-}
-
-export interface ConvertRequestOptions {
-  jobId1: string;
-  jobId2: string;
-  /** Source MIME type; also the file part's `Content-Type`. */
-  fromMime: string;
-  /** Source extension. */
-  fromSuffix: string;
-  /** Target MIME type. The app always asks for `application/pdf`. */
-  toMime: string;
-  toSuffix: string;
-  file: FileUpload;
-}
-
-export interface ConvertedFile {
-  /** True once the conversion finished and `bytes` holds the output. */
-  done: boolean;
-  bytes?: Uint8Array;
-  mimeType?: string;
-  /** The status envelope, present while the job is still running. */
-  status?: RcResponseBase;
-}
 
 export class RemoteConverter {
   constructor(private readonly ctx: MetamojiContext) {}
