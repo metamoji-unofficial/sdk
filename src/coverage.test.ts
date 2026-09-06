@@ -1,22 +1,31 @@
 /**
- * Proof that every operation in `docs/typespec` has a method on the client.
+ * Proof that every operation in the spec has a method on the client, and that
+ * the method goes where the spec says.
  *
- * The operation list is re-derived from the `.tsp` files on every run rather
- * than being hard-coded, so adding an operation to the spec fails this test
- * until the wrapper catches up — which is the only way "complete coverage"
- * stays true after today.
+ * The operation list is read from `spec/operations.json` rather than hard-coded
+ * here, so adding an operation fails this test until the wrapper catches up —
+ * which is the only way "complete coverage" stays true after today.
+ *
+ * That file is a committed snapshot because the TypeSpec sources live in a
+ * separate, private repository and this package is public: its tests have to
+ * run for anyone who checks it out. `bun run gen:spec` refreshes it, and the
+ * last test here catches a snapshot that has fallen behind — but only from a
+ * checkout that has the spec to compare against.
  */
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { Metamoji } from "./client.js";
+// @ts-expect-error - plain JS, and deliberately not part of the build.
+import { readOperations } from "../scripts/sync-spec.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const typespecRoot = join(here, "..", "..", "docs", "typespec");
+const snapshot = join(here, "..", "spec", "operations.json");
 
 /**
  * TypeSpec `Interface.operation` -> the client path that implements it.
@@ -202,41 +211,17 @@ const COVERAGE: Record<string, string> = {
   "RemoteConverter.getConvertedFile": "converter.getConvertedFile",
 };
 
-function tspFiles(dir: string): string[] {
-  const found: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    if (entry === "node_modules") continue;
-    const path = join(dir, entry);
-    if (statSync(path).isDirectory()) found.push(...tspFiles(path));
-    else if (entry.endsWith(".tsp")) found.push(path);
-  }
-  return found;
+/** `Interface.operation` for every operation declared in the spec. */
+interface SpecOperation {
+  key: string;
+  file: string;
+  method: string;
+  route?: string;
 }
 
-/** `Interface.operation` for every operation declared in the spec. */
-function specOperations(): { key: string; file: string; route?: string }[] {
-  const operations: { key: string; file: string; route?: string }[] = [];
-  for (const file of tspFiles(typespecRoot).sort()) {
-    const source = readFileSync(file, "utf8");
-    let currentInterface = "";
-    let route: string | undefined;
-    const pattern =
-      /interface\s+(\w+)\s*\{|^[ \t]*@route\("([^"]*)"\)|^[ \t]*op\s+(\w+)\s*\(/gm;
-    let match: RegExpExecArray | null;
-    while ((match = pattern.exec(source))) {
-      if (match[1]) currentInterface = match[1];
-      else if (match[2] !== undefined) route = match[2];
-      else {
-        operations.push({
-          key: `${currentInterface}.${match[3]}`,
-          file: relative(typespecRoot, file),
-          route,
-        });
-        route = undefined;
-      }
-    }
-  }
-  return operations;
+/** The operations the committed snapshot declares. */
+function specOperations(): SpecOperation[] {
+  return JSON.parse(readFileSync(snapshot, "utf8")) as SpecOperation[];
 }
 
 /**
@@ -357,6 +342,14 @@ describe("TypeSpec coverage", () => {
     // this is a floor rather than a total: a resource that builds its path some
     // new way would drop out of the check above without failing it.
     expect(requestPaths().length).toBeGreaterThanOrEqual(100);
+  });
+
+  it("has a snapshot that still matches the spec it came from", () => {
+    // Only where the spec is checked out beside this repo. Elsewhere the
+    // snapshot is all there is, and the tests above run against it — the point
+    // of committing it. Refresh it with `bun run gen:spec`.
+    if (!existsSync(typespecRoot)) return;
+    expect(readOperations(typespecRoot)).toEqual(operations);
   });
 
   it("maps each operation to a distinct method", () => {
