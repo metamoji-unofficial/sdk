@@ -88,10 +88,12 @@ export class Drives {
    */
   async getHome(
     driveId: string,
-    options: CsRequestBase & { adopt?: boolean } = {},
+    // No `CsRequestBase`: this call sends no body at all, so there would be
+    // nowhere to put an override. Offering the fields and dropping them is the
+    // one option that leaves a caller with no way to find out.
+    options: { adopt?: boolean } = {},
   ): Promise<Result<DriveHomeResponse>> {
-    const { adopt = true, ...rest } = options;
-    void rest;
+    const { adopt = true } = options;
     const result = csEnvelope<DriveHomeResponse>(
       await this.ctx.request({
         base: "rest",
@@ -131,8 +133,7 @@ export class Drives {
    * Entries (notes and folders) in a drive.
    * `executeGetDriveEntryWithParams` — `GET {rest}/drives/entry`.
    */
-  async listEntries(options: CsRequestBase = {}): Promise<Result<DriveEntryResponse>> {
-    void options;
+  async listEntries(): Promise<Result<DriveEntryResponse>> {
     return csEnvelope(
       await this.ctx.request({
         base: "rest",
