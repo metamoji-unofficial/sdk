@@ -16,39 +16,16 @@
  * is not established — see the notes in the TypeSpec.
  */
 
-import { LICENSE_PRODUCT_ID } from "../core/config.js";
-import { jsonPassthrough } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import { md5 } from "../core/md5.js";
-import { fail, type Result } from "../core/result.js";
-
-export interface ActivateOptions {
-  /** `tt_deviceid` — the random UUID generated at first launch. */
-  deviceId?: string;
-  /** `tt_licensekey` — the key the user typed in. */
-  licenseKey: string;
-  /** `tt_devicename` — `"{Build.BRAND} {Build.MODEL}"` in the app. */
-  deviceName?: string;
-  /** `tt_productid`. Defaults to the app's hardcoded value. */
-  productId?: string;
-  /** Overrides the computed request hash. */
-  tt_hash?: string;
-  /** Check the response's own hash. Default true. */
-  verifyHash?: boolean;
-}
-
-export interface ActivateResponse {
-  tt_hash?: string;
-  /** 0 is success. A negative value means a network or format problem. */
-  i_status?: number;
-  /** Activation result. 0 means the licence is valid. */
-  i_result?: number;
-}
-
-export interface RemainingDaysResponse extends ActivateResponse {
-  /** Days left from today. */
-  i_days?: number;
-}
+import { LICENSE_PRODUCT_ID } from "../../core/config.js";
+import { jsonPassthrough } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import { md5 } from "../../core/md5.js";
+import { fail, type Result } from "../../core/result.js";
+import type {
+  ActivateOptions,
+  ActivateResponse,
+  RemainingDaysResponse,
+} from "./interfaces.js";
 
 export class LicenseActivation {
   constructor(private readonly ctx: MetamojiContext) {}
