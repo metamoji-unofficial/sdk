@@ -17,149 +17,38 @@
  * from the session `auth.login()` established.
  */
 
-import type { MetamojiContext } from "../core/http.js";
-import { jsonPassthrough } from "../core/envelope.js";
-import { filePart, jsonPart, optionalPart, type MultipartPart } from "../core/multipart.js";
-import type { Result } from "../core/result.js";
-import type { FileUpload, JsonRecord } from "../core/types.js";
-
-/** Device and user credentials (`NsCollaboURLConnection.createAuthInfoParam`). */
-export interface NsAuthInfo {
-  deviceID?: string;
-  deviceCode?: string;
-  /** `cabinet` for a signed-in user, `guest` for an anonymous participant. */
-  authType: "cabinet" | "guest";
-  userID?: string;
-  /** Only one of `userPassword` and `qwd` is ever sent. */
-  userPassword?: string;
-  qwd?: string;
-  productName?: string;
-  productVersion?: string;
-  locale?: string;
-  companyID?: string;
-}
-
-/** Per-role permission: may act, or may only watch. */
-export type RolePermission = "FREE" | "READONLY";
-
-/** A whole-room mode. `DELETE` closes the room. */
-export type RoomMode = "FREE" | "READONLY" | "DELETE";
-
-export interface NsRoomRolePermissions {
-  presenter?: RolePermission | RoomMode;
-  speaker?: RolePermission | RoomMode;
-  visitor?: RolePermission | RoomMode;
-}
+import type { MetamojiContext } from "../../core/http.js";
+import { jsonPassthrough } from "../../core/envelope.js";
+import { filePart, jsonPart, optionalPart, type MultipartPart } from "../../core/multipart.js";
+import type { Result } from "../../core/result.js";
+import type { JsonRecord } from "../../core/types.js";
+import type {
+  CreateRoomOptions,
+  GetMemberListOptions,
+  GetRoomSettingOptions,
+  GetShareViewListOptions,
+  LoginRoomOptions,
+  ModifyRoleOptions,
+  NsAuthInfo,
+  NsRoomInfo,
+  PostGalleryOptions,
+  RoomAuthOptions,
+  RoomIdListOptions,
+  ToolLoginOptions,
+  UpdateRoomInfoOptions,
+  UpdateRoomModeOptions,
+  UpdateRoomSettingOptions,
+} from "./interfaces.js";
 
 /**
- * Room settings, shared by `create`, `update`, `updateMode` and
- * `updateTitleDate`; each uses a different subset.
+ * A device code the service will accept.
  *
- * The index signature is deliberate: `ScCollaboURLConnectionForUpdateDeadlineInfo`
- * sends a completely different key set (`validFlag`, `startTime`, `endTime`,
- * `beforeMode2` and the rest — see `classroom/gradebook.tsp`) through this same
- * part, and those keys have no recovered schema.
+ * `NsCollaboBgTaskForCreateUniqueID` makes one with `Random.nextInt()` and
+ * keeps the decimal digits — a UUID in this field is refused along with the id
+ * issued for it.
  */
-export interface NsRoomInfo {
-  ownerID?: string;
-  title?: string;
-  roomType?: "casual" | "formal" | "limited";
-  secureRoom?: string;
-  secureRoomPassword?: string;
-  roomPassword2?: string;
-  role?: NsRoomRolePermissions;
-  /** Epoch milliseconds. */
-  openDate?: number;
-  [key: string]: unknown;
-}
-
-/** Credentials override, accepted by every room call. */
-export interface RoomAuthOptions {
-  authInfo?: Partial<NsAuthInfo>;
-}
-
-export interface CreateRoomOptions extends RoomAuthOptions {
-  roomInfo: NsRoomInfo;
-}
-
-export interface LoginRoomOptions extends RoomAuthOptions {
-  roomID: string;
-  roomPassword2?: string;
-  secureRoomPassword?: string;
-  /** The device's LAN address, used to pair participants on the same network. */
-  localIp?: string;
-}
-
-export interface ModifyRoleOptions extends RoomAuthOptions {
-  roomID: string;
-  addRole?: string;
-  delRole?: string;
-}
-
-export interface GetMemberListOptions {
-  /** The `{roomID, userID}` pairs to look up. */
-  memberList: { roomID: string; userID: string }[];
-  companyID?: string;
-}
-
-export interface UpdateRoomModeOptions extends RoomAuthOptions {
-  /** Applied to all three roles at once, which is what this endpoint is for. */
-  mode: RoomMode;
-  /** Merged into the `roomInfo` part, for anything else that needs to go with it. */
-  roomInfo?: NsRoomInfo;
-  /** Sent as a bare form part when given, as the deadline variant does. */
-  roomID?: string;
-}
-
-export interface UpdateRoomInfoOptions extends RoomAuthOptions {
-  roomInfo: NsRoomInfo;
-  secureRoomPassword?: string;
-  roomID?: string;
-}
-
-export interface RoomIdListOptions extends RoomAuthOptions {
-  roomIdList: string[];
-}
-
-export interface GetRoomSettingOptions extends RoomAuthOptions {
-  roomId: string;
-  /** Fixed `"#ClassRoom"` in the app; overridable in case another value exists. */
-  key1?: string;
-}
-
-export interface UpdateRoomSettingOptions extends RoomAuthOptions {
-  roomSettingList: unknown[];
-}
-
-export interface GetShareViewListOptions extends RoomAuthOptions {
-  /** Filter, e.g. by publication window. */
-  narrowCond?: JsonRecord;
-  /** Restricts the search to these documents. */
-  shareDocList?: unknown[];
-  sortCond?: JsonRecord;
-}
-
-export interface ToolLoginOptions {
-  email: string;
-  password?: string;
-  qwd?: string;
-  companyID?: string;
-  locale?: string;
-  timezone?: string;
-}
-
-export interface PostGalleryOptions {
-  roomId: string;
-  title: string;
-  text?: string;
-  encryptedHash: string;
-  /** The note page itself, as `application/vnd.metamoji.btshare`. */
-  document: FileUpload;
-  /** Its thumbnail, as JPEG. */
-  image: FileUpload;
-  timezone?: string;
-  productName?: string;
-  productVersion?: string;
+export function newDeviceCode(): string {
+  return String(Math.floor(Math.random() * 0x7fff_ffff) + 1);
 }
 
 export class Rooms {
@@ -197,16 +86,30 @@ export class Rooms {
    */
   async createGuestId(options: RoomAuthOptions = {}): Promise<Result<JsonRecord>> {
     const c = this.ctx.config;
+    // Ours to invent, and the seed for the id the service issues. Without a
+    // code there is nothing to register, and an id invented locally is refused
+    // with "bad device id or code".
+    const deviceCode = options.authInfo?.deviceCode ?? c.deviceCode ?? newDeviceCode();
     // The guest form omits the user id and password entirely.
-    return this.post("cosmos/CreateUniqueID", [
+    const result = await this.post("cosmos/CreateUniqueID", [
       jsonPart("authInfo", {
-        deviceCode: options.authInfo?.deviceCode ?? c.deviceCode ?? "",
+        deviceCode,
         authType: "guest",
         productName: options.authInfo?.productName ?? c.productName,
         productVersion: options.authInfo?.productVersion ?? c.productVersion,
         locale: options.authInfo?.locale ?? c.locale,
       }),
     ]);
+
+    // Adopted like the login response's `restHost`: every other `cosmos/*`
+    // call carries the pair in its `authInfo`, and a caller that had to wire
+    // it back by hand would mostly forget.
+    const deviceId = result.data?.deviceID;
+    if (typeof deviceId === "string" && deviceId.length > 0) {
+      c.deviceId = deviceId;
+      c.deviceCode = deviceCode;
+    }
+    return result;
   }
 
   /**
@@ -421,7 +324,12 @@ export class Rooms {
       deviceID: overrides.deviceID ?? c.deviceId ?? "",
       deviceCode: overrides.deviceCode ?? c.deviceCode ?? "",
       authType: overrides.authType ?? "cabinet",
-      userID: overrides.userID ?? s.userId,
+      // The account's *email*, not its numeric id. Every caller of
+      // `createAuthInfoParam` passes its `email` field in this position
+      // (`ScCollaboURLConnectionForSetScore` and siblings), and a school
+      // account's email is its login name. The numeric id is refused with
+      // "bad user", which reads like a wrong password and is not.
+      userID: overrides.userID ?? s.email ?? s.loginName ?? s.userId,
       productName: overrides.productName ?? c.productName,
       productVersion: overrides.productVersion ?? c.productVersion,
       locale: overrides.locale ?? c.locale,
