@@ -6,109 +6,32 @@
  * planes — `sync.*` (`drive/sync-drive.tsp`) or `webdav.*` (`drive/webdav.tsp`).
  */
 
-import { csEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import type { Result } from "../core/result.js";
-import type { CsRequestBase, CsResponseBase, JsonRecord } from "../core/types.js";
-
-export interface CreateDriveOptions extends CsRequestBase {
-  driveName?: string;
-}
-
-export interface CreateDriveResponse extends CsResponseBase {
-  driveId?: string;
-}
-
-export interface RenameDriveOptions extends CsRequestBase {
-  driveId?: string;
-  driveName?: string;
-}
-
-export interface DriveHomeResponse extends CsResponseBase {
-  /** Base URL for this drive's data plane — `sync`'s `homeDir`. */
-  homeDir?: string;
-  /** Absolute URL of the maintenance text for this drive's host. */
-  maintenanceText?: string;
-}
-
-export interface PrivateDriveHomeResponse extends DriveHomeResponse {
-  driveId?: string;
-  userId?: string;
-}
-
-export interface DriveEntryResponse extends CsResponseBase {
-  list?: JsonRecord[];
-  uid?: string;
-}
-
-export interface DriveEntryInfoResponse extends DriveEntryResponse {
-  /** Entry id to URI map. */
-  urimap?: JsonRecord;
-}
-
-export interface UpdateEntryHiddenOptions extends CsRequestBase {
-  entryList?: JsonRecord[];
-}
-
-export interface ListMembersOptions extends CsRequestBase {
-  driveId?: string;
-  isClassMember?: boolean;
-  isGet?: boolean;
-}
-
-export interface ListMembersResponse extends CsResponseBase {
-  list?: JsonRecord[];
-}
-
-export interface InviteOptions extends CsRequestBase {
-  driveId?: string;
-  emailList?: JsonRecord[];
-  message?: string;
-  userIdList?: JsonRecord[];
-}
-
-export interface InviteResponse extends CsResponseBase {
-  isAlreadyMember?: boolean;
-}
-
-export interface ReInviteOptions extends CsRequestBase {
-  driveId?: string;
-  message?: string;
-}
-
-export interface ExcludeMembersOptions extends CsRequestBase {
-  driveId?: string;
-  userList?: JsonRecord[];
-}
-
-export interface UpdateMemberTypeOptions extends CsRequestBase {
-  driveId?: string;
-  userList?: JsonRecord[];
-}
-
-export interface StorageUsageResponse extends CsResponseBase {
-  amountUsage?: string;
-}
-
-export interface CreateLinkOptions extends CsRequestBase {
-  docId?: string;
-  driveId?: string;
-  pageId?: string;
-}
-
-export interface CreateLinkResponse extends CsResponseBase {
-  uri?: string;
-}
-
-export interface ReverseLinkOptions extends CsRequestBase {
-  uri?: string;
-}
-
-export interface ReverseLinkResponse extends CsResponseBase {
-  docId?: string;
-  driveId?: string;
-  pageId?: string;
-}
+import { csEnvelope } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import type { Result } from "../../core/result.js";
+import type { CsRequestBase, CsResponseBase } from "../../core/types.js";
+import type {
+  CreateDriveOptions,
+  CreateDriveResponse,
+  CreateLinkOptions,
+  CreateLinkResponse,
+  DriveEntryInfoResponse,
+  DriveEntryResponse,
+  DriveHomeResponse,
+  ExcludeMembersOptions,
+  InviteOptions,
+  InviteResponse,
+  ListMembersOptions,
+  ListMembersResponse,
+  PrivateDriveHomeResponse,
+  ReInviteOptions,
+  RenameDriveOptions,
+  ReverseLinkOptions,
+  ReverseLinkResponse,
+  StorageUsageResponse,
+  UpdateEntryHiddenOptions,
+  UpdateMemberTypeOptions,
+} from "./interfaces.js";
 
 export class Drives {
   constructor(private readonly ctx: MetamojiContext) {}
@@ -168,12 +91,16 @@ export class Drives {
     options: CsRequestBase & { adopt?: boolean } = {},
   ): Promise<Result<DriveHomeResponse>> {
     const { adopt = true, ...rest } = options;
+    void rest;
     const result = csEnvelope<DriveHomeResponse>(
       await this.ctx.request({
         base: "rest",
         path: `drives/${encodeURIComponent(driveId)}/home`,
         method: "GET",
-        json: this.ctx.csBody({ driveId, ...rest }),
+        // No body. `docs/typespec/README.md` says a JSON body rides along even
+        // on GET, and for most commands it does — but `CsCloudService$30`
+        // passes a literal null where the body goes. Sending one is not
+        // harmless: the server answers 200 with no `homeDir` in it.
       }),
     );
     if (adopt && result.data) this.adoptHome(result.data);
@@ -205,12 +132,13 @@ export class Drives {
    * `executeGetDriveEntryWithParams` — `GET {rest}/drives/entry`.
    */
   async listEntries(options: CsRequestBase = {}): Promise<Result<DriveEntryResponse>> {
+    void options;
     return csEnvelope(
       await this.ctx.request({
         base: "rest",
         path: "drives/entry",
         method: "GET",
-        json: this.ctx.csBody(options),
+        // No body, like `getHome`: `CsCloudService$28` passes a literal null.
       }),
     );
   }
