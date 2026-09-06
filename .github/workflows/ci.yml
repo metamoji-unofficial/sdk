@@ -1,0 +1,47 @@
+name: CI
+
+# publish.yml も同じ3つを回すが、あちらが動くのはタグを打った後。
+# 壊れていることに公開直前まで気付けないので、日常の push と PR でも見る。
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同じブランチに続けて push したら、古い方は打ち切ってよい。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # spec/operations.json はコミット済みのスナップショットなので、
+      # docs (非公開) が無いこの環境でも全数が走る。
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
