@@ -12,40 +12,19 @@
  * through `NsRoomInfo`, which allows extra keys for exactly that reason.
  */
 
-import { jsonPassthrough } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import { jsonPart, type MultipartPart } from "../core/multipart.js";
-import type { Result } from "../core/result.js";
-import type { JsonRecord } from "../core/types.js";
-import type { Rooms, RoomAuthOptions } from "./rooms.js";
-
-export interface GetScoreListOptions extends RoomAuthOptions {
-  roomIdList: string[];
-  /** Asks the server to record the query. Default false. */
-  needLog?: boolean;
-}
-
-export interface GetTestingLogListOptions extends RoomAuthOptions {
-  roomID: string;
-}
-
-export interface SetReportOptions extends RoomAuthOptions {
-  roomID: string;
-  userID: string;
-  /** Submission status code. The meanings are not recovered. */
-  report: number;
-}
-
-export interface SetScoreOptions extends RoomAuthOptions {
-  roomID: string;
-  userID: string;
-  score: number;
-  /**
-   * Clears the mark instead of setting it. Sends the base64 of `"ClearScore"`
-   * in `scoreString`, which is the signal the server looks for.
-   */
-  clearScore?: boolean;
-}
+import { jsonPassthrough } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import { jsonPart, type MultipartPart } from "../../core/multipart.js";
+import type { Result } from "../../core/result.js";
+import type { JsonRecord } from "../../core/types.js";
+import type { RoomAuthOptions } from "../rooms/interfaces.js";
+import type { Rooms } from "../rooms/rooms.js";
+import type {
+  GetScoreListOptions,
+  GetTestingLogListOptions,
+  SetReportOptions,
+  SetScoreOptions,
+} from "./interfaces.js";
 
 export class Gradebook {
   constructor(
