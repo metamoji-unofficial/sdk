@@ -213,8 +213,11 @@ export class WebDav {
       path: resourceUrl,
       method,
       headerSet: "none",
-      // Basic auth and the app code do the work here; no session cookie applies.
-      scope: "cs",
+      // Basic auth and the app code do the work here; no session cookie
+      // applies. Its own scope all the same: this client is reused as-is for
+      // whatever WebDAV server a user points it at, and a `Set-Cookie` from
+      // one of those has no business in the jar holding the MetaMoJi session.
+      scope: "webdav",
       headers: { ...this.authHeaders(), ...options.headers },
       parse,
       ...(payload ? { raw: payload } : {}),

@@ -438,8 +438,14 @@ export class Sync {
     const toPayload = (
       result: Result<HttpResult>,
     ): Result<BinaryPayload> => {
-      if (result.error) return fail(result.error);
-      // A JSON body here is an error envelope, not the file.
+      // Every failure goes back through `sdEnvelope`, including a transport-
+      // level one. The drive service reports a lapsed session as HTTP 500 with
+      // the code nested under `data`, which arrives here as a bare `http_error`
+      // carrying no `code` at all — and `shouldRetry` reads `code`. Handing the
+      // raw error straight back is why a download never re-logged in while
+      // every other sync call did.
+      if (result.error) return sdEnvelope<BinaryPayload>(result);
+      // A JSON body on a 2xx is an error envelope, not the file.
       const envelope = result.data.json as SdResponseBase | undefined;
       if (envelope && typeof envelope.errorCode === "number" && envelope.errorCode !== 0) {
         return sdEnvelope<BinaryPayload>(result);

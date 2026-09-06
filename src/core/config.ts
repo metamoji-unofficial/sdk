@@ -14,6 +14,20 @@ import { withTrailingSlash } from "./url.js";
 
 /** Bootstrap host. `ModelInfo$BuildOptions.DIGITAL_CABINET_URL_ROOT`. */
 export const DEFAULT_ROOT_SERVER = "https://mps.metamoji.com/";
+
+/**
+ * The context root every tenant call sits under.
+ * `CsCloudServiceContext#getRestBasePath()`.
+ *
+ * The tenant host serves nothing at its own root: `POST {tenant}/users3/login`
+ * is a 404, and `POST {tenant}/mmjeditor2/2.0/users3/login` is the endpoint.
+ * The bootstrap root server is the other way round — `mpsroot/RequestServlet`
+ * and `sso/requestcredential` sit directly at its root and 404 underneath this
+ * prefix — which is why the two are separate bases rather than one host with a
+ * switch. The `cosmos/*` and `mmjcloud/*` families are on the tenant host but
+ * *not* under this prefix, and use `dc`.
+ */
+export const DEFAULT_REST_BASE_PATH = "mmjeditor2/2.0";
 /** Startup manifest CDN (`NtSysInfoManager`, public-cloud default). */
 export const DEFAULT_CDN_SERVER = "https://cdn.metamoji.com/";
 /** Mazec dictionary manifest host. Hardcoded to staging in the app; not a typo here. */
@@ -80,6 +94,12 @@ export interface MetamojiConfig {
   cdnServer?: string;
   /** Mazec dictionary CDN. Default `https://cdn-test.metamoji.com/`. */
   mazecCdnServer?: string;
+  /**
+   * Context root for tenant calls, appended to `restHost`. Default
+   * `mmjeditor2/2.0`; set `""` for a deployment that serves them at the root.
+   */
+  restBasePath?: string;
+
   /** Licence activation host. Default `https://license.metamoji.com/mmjlicense/`. */
   licenseServer?: string;
   /**
@@ -202,6 +222,7 @@ export function resolveConfig(config: MetamojiConfig = {}): ResolvedConfig {
   return {
     rootServer: withTrailingSlash(config.rootServer ?? DEFAULT_ROOT_SERVER),
     restHost: config.restHost ? withTrailingSlash(config.restHost) : undefined,
+    restBasePath: config.restBasePath ?? DEFAULT_REST_BASE_PATH,
     // Left unset unless the caller names one: `dc` resolves to the tenant's
     // REST host once login has provided it. Defaulting it to the root server
     // here would fix it there for the life of the client, and `cosmos/*` on

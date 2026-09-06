@@ -12,6 +12,10 @@ import { Metamoji } from "@metamoji/sdk";
 
 const metamoji = new Metamoji({ locale: "ja_JP" });
 
+// 学校IDからテナントのホストを引く。ログインを含むほぼ全APIはルートサーバーではなく
+// テナント側にあるので、これが最初の一手になる (restHost として自動で取り込まれる)。
+await metamoji.auth.resolveSchool("school-code");
+
 const { data, error } = await metamoji.auth.login({
   coLoginId: "school-code",
   loginName: "teacher",
@@ -23,8 +27,8 @@ if (error) {
   console.log(data.name, data.restHost);
 }
 
-// ログインで restHost・セッションCookie・ユーザー情報が自動的に取り込まれるので、
-// 以降のリソースはそのまま呼べる。
+// ログインでセッションCookieとユーザー情報が取り込まれ、応答が別テナントを指していれば
+// restHost もそちらに切り替わるので、以降のリソースはそのまま呼べる。
 const drives = await metamoji.drives.getPrivateHome();
 const rooms = await metamoji.rooms.list();
 ```
@@ -108,8 +112,9 @@ import type { LoginOptions, WebDavItem, NsRoomInfo } from "metamoji-api";
 `homeDir`、セッションごとの Flora サーバー、CDN、ライセンス専用ホスト、そして
 サーバーが払い出す絶対URL (WebDAV・ストアのページ・アップロード先) が並存します。
 
-`auth.login()` が `restHost` を、`drives.getHome()` / `drives.getPrivateHome()` が
-`homeDir` を自動で取り込みます。それ以外は明示的に設定してください。
+`auth.resolveSchool()` と `auth.login()` が `restHost` を、`drives.getHome()` /
+`drives.getPrivateHome()` が `homeDir` を自動で取り込みます。それ以外は明示的に
+設定してください。
 
 ```ts
 const metamoji = new Metamoji({
@@ -118,6 +123,21 @@ const metamoji = new Metamoji({
 });
 metamoji.configure({ homeDir: "https://drive.example/" });
 ```
+
+さらに、**同じホストでもコンテキストルートが違います**。テナント側の
+`CsCloudService` 系はすべて `mmjeditor2/2.0/` の下にあり、ホスト直下は 404 です。
+逆にルートサーバーの2つ (`mpsroot/RequestServlet`・`sso/requestcredential`) は直下に
+あり、このプレフィックスを付けると 404 になります。テナント上の `cosmos/*` /
+`mmjcloud/*` (`rooms.*`・`gradebook.*`) もプレフィックス無しです。
+
+| base | ホスト | プレフィックス |
+| --- | --- | --- |
+| `root` | `rootServer` | なし |
+| `rest` | `restHost` (テナント) | `restBasePath` (既定 `mmjeditor2/2.0`) |
+| `dc` | `dcServer ?? restHost` | なし |
+| `home` | `homeDir` (ドライブ) | なし |
+
+オンプレミスなどで直下に置かれている場合は `restBasePath: ""` を指定してください。
 
 ### GET / DELETE がJSONボディを送る
 
@@ -173,7 +193,7 @@ MetaMoji独自の dead property (`lastSyncedRevision` など) を分けて返し
 ```ts
 new Metamoji({
   // ホスト
-  rootServer, restHost, dcServer, homeDir, floraServer,
+  rootServer, restHost, restBasePath, dcServer, homeDir, floraServer,
   cdnServer, mazecCdnServer, licenseServer,
   maintenanceUrl,       // system.getMaintenanceInfo() 用 (login の maintCheckURL)
   syncMaintenanceUrl,   // sync.getMaintenanceInfo() 用 (drives.getHome の maintenanceText)
@@ -239,7 +259,8 @@ TypeSpec にオペレーションを足すと、ラッパーを追従させる�
 
 ## エンドポイント網羅表
 
-全131オペレーション。パスは各サブシステムのベースURLからの相対です。
+全131オペレーション。パスは各サブシステムのベースURLからの相対です
+(テナント側の `CsCloudService` 系にはさらに `mmjeditor2/2.0/` が付きます — 上記参照)。
 
 
 ### `auth/auth.tsp` — 認証・アカウント管理

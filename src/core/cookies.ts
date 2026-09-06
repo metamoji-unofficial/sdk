@@ -19,9 +19,15 @@
  * (drive/sync-drive.tsp), and the gallery-media subsystem re-authenticates via
  * `gallery/LoginMedia`. One shared jar would let a sync login quietly replace
  * the main session.
+ *
+ * `webdav` is a scope for the opposite reason. It authenticates with Basic and
+ * an app code rather than a cookie, so it has no session to keep — but the same
+ * client is reused verbatim for *arbitrary user-configured WebDAV servers*
+ * (drive/webdav.tsp), and whatever those set must not land in the jar the
+ * MetaMoJi session is kept in.
  */
 
-export type SessionScope = "cs" | "sd" | "media" | "collabo" | "store" | "flora";
+export type SessionScope = "cs" | "sd" | "media" | "collabo" | "store" | "flora" | "webdav";
 
 export const SESSION_SCOPES: readonly SessionScope[] = [
   "cs",
@@ -30,6 +36,7 @@ export const SESSION_SCOPES: readonly SessionScope[] = [
   "collabo",
   "store",
   "flora",
+  "webdav",
 ];
 
 interface StoredCookie {

@@ -16,6 +16,7 @@ import {
   type ResolvedConfig,
 } from "./config.js";
 import { joinUrl, withQuery, withTrailingSlash } from "./url.js";
+import { CS_NOT_LOGIN } from "./envelope.js";
 import { CookieJar, type SessionScope } from "./cookies.js";
 import { buildMultipart, type MultipartPart } from "./multipart.js";
 import { fail, failFrom, ok, type Result } from "./result.js";
@@ -75,6 +76,10 @@ export class MetamojiContext {
   session: MetamojiSession;
   readonly cookies = new CookieJar();
   private readonly transport: Transport;
+  /** How to sign in again when the session lapses; see `onSessionLapsed`. */
+  private renew?: () => Promise<boolean>;
+  /** Guards the renewal itself, which is a request like any other. */
+  private renewing = false;
 
   constructor(config: MetamojiConfig = {}) {
     this.config = resolveConfig(config);
@@ -93,6 +98,23 @@ export class MetamojiContext {
   /** Merges identity fields into the stored session. */
   setSession(session: MetamojiSession): void {
     this.session = { ...this.session, ...session };
+  }
+
+  /**
+   * Registers how to sign in again, or clears it with `undefined`.
+   *
+   * `executeWithAutoLoginFor` is a cross-cutting mechanism in the app rather
+   * than an endpoint (docs/typespec/README.md): a lapsed session is answered by
+   * re-authenticating and retrying once, wherever it happens. `sync`, `media`
+   * and the legacy store each implement their own; this is the one for the main
+   * `CsCloudService` session, which is the largest subsystem and the one whose
+   * cookie every other login is arranged around.
+   *
+   * `auth.login()` sets it when the caller gave a password, so nothing is
+   * retried on behalf of a client that has no way to sign in.
+   */
+  onSessionLapsed(renew: (() => Promise<boolean>) | undefined): void {
+    this.renew = renew;
   }
 
   private rawConfig(): MetamojiConfig {
@@ -135,11 +157,13 @@ export class MetamojiContext {
           return fail({
             name: "not_configured",
             message:
-              "No REST host. It comes from the login response — call auth.login() first, " +
-              "or set `restHost` in the client options.",
+              "No REST host. It is the tenant's own server — call auth.resolveSchool() with " +
+              "the school id first, or set `restHost` in the client options.",
           });
         }
-        return ok(joinUrl(c.restHost, path));
+        // Under the context root, not at the tenant's own root, where every
+        // one of these paths is a 404. See `DEFAULT_REST_BASE_PATH`.
+        return ok(joinUrl(joinUrl(c.restHost, c.restBasePath), path));
       case "home":
         if (!c.homeDir) {
           return fail({
@@ -168,8 +192,37 @@ export class MetamojiContext {
     }
   }
 
-  /** Builds, sends and decodes one request. Never rejects. */
+  /**
+   * Builds, sends and decodes one request, signing in again and retrying once
+   * if the session had lapsed in the meantime. Never rejects.
+   */
   async request(spec: RequestSpec): Promise<Result<HttpResult>> {
+    const first = await this.dispatch(spec);
+    if (!this.shouldRenew(spec, first)) return first;
+
+    this.renewing = true;
+    try {
+      if (!(await this.renew?.())) return first;
+    } finally {
+      this.renewing = false;
+    }
+    return this.dispatch(spec);
+  }
+
+  /**
+   * Whether this answer is "your session has lapsed" and something can be done
+   * about it.
+   *
+   * Only for the `cs` scope: the other subsystems keep their own sessions with
+   * their own codes, and signing back in to this one would not mend theirs.
+   */
+  private shouldRenew(spec: RequestSpec, result: Result<HttpResult>): boolean {
+    if (!this.config.autoLogin || this.renewing || !this.renew) return false;
+    if ((spec.scope ?? "cs") !== "cs") return false;
+    return saysSessionLapsed(result);
+  }
+
+  private async dispatch(spec: RequestSpec): Promise<Result<HttpResult>> {
     const resolved = this.resolveUrl(spec.base, spec.path);
     if (resolved.error) return fail(resolved.error);
     const url = withQuery(resolved.data, spec.query);
@@ -280,6 +333,22 @@ export class MetamojiContext {
   setHomeDir(homeDir: string | undefined): void {
     if (homeDir) this.config.homeDir = withTrailingSlash(homeDir);
   }
+}
+
+/**
+ * Reads `NOT_LOGIN_EXCEPTION` out of a reply, whichever shape it took.
+ *
+ * The status is no help: signed out, `users2/login/user` answers **500** and
+ * `users3/crbox/get/joincode` answers **401**, both with the code nested under
+ * `data`. Other endpoints report it flat on a 200. So the body is what decides,
+ * and a bare 401 or 500 with nothing recognisable in it is left alone.
+ */
+function saysSessionLapsed(result: Result<HttpResult>): boolean {
+  const body = result.error ? result.error.data : result.data?.json;
+  if (typeof body !== "object" || body === null) return false;
+  const envelope = body as { errorCode?: unknown; data?: { errorCode?: unknown } };
+  const code = envelope.data?.errorCode ?? envelope.errorCode;
+  return code === CS_NOT_LOGIN;
 }
 
 function decode(response: TransportResponse, parse: NonNullable<RequestSpec["parse"]>): HttpResult {

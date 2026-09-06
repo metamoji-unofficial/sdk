@@ -83,7 +83,11 @@ export class Auth {
 
   /**
    * Signs in with a user id or email address.
-   * `CsCloudService.executeLoginWithParam` — `POST {root}/users3/login`.
+   * `CsCloudService.executeLoginWithParam` — `POST {rest}/users3/login`.
+   *
+   * Against the tenant, not the bootstrap root: the root server serves no
+   * `users3/*` at all. So a school account calls `resolveSchool()` first, which
+   * is what supplies the host this then posts to.
    *
    * On success the client stores the session cookie, the returned `restHost`
    * and the identity fields the multipart subsystems re-send on every call.
@@ -91,44 +95,50 @@ export class Auth {
   async login(options: LoginOptions): Promise<Result<LoginResponse>> {
     const result = csEnvelope<LoginResponse>(
       await this.ctx.request({
-        base: "root",
+        base: "rest",
         path: "users3/login",
         method: "POST",
         json: this.ctx.csBody(options),
       }),
     );
-    if (result.data) this.adoptSession(result.data, options.password);
+    if (result.data) {
+      this.adoptSession(result.data, options.password);
+      this.rememberHowToReturn(options.password, () => this.login(options));
+    }
     return result;
   }
 
   /**
    * Signs in as a ClassRoom account — the simplified pupil login, by class and
    * seat number rather than an email address.
-   * `executeClassRoomLoginWithParam` — `POST {root}/users3/classroomlogin`.
+   * `executeClassRoomLoginWithParam` — `POST {rest}/users3/classroomlogin`.
    */
   async classroomLogin(options: ClassroomLoginOptions): Promise<Result<LoginResponse>> {
     const result = csEnvelope<LoginResponse>(
       await this.ctx.request({
-        base: "root",
+        base: "rest",
         path: "users3/classroomlogin",
         method: "POST",
         json: this.ctx.csBody(options),
       }),
     );
-    if (result.data) this.adoptSession(result.data, options.password);
+    if (result.data) {
+      this.adoptSession(result.data, options.password);
+      this.rememberHowToReturn(options.password, () => this.classroomLogin(options));
+    }
     return result;
   }
 
   /**
    * The school and class list shown on the ClassRoom login screen.
-   * `executeGetClassRoomLoginInfoWithParam` — `POST {root}/users3/getclassroominfo`.
+   * `executeGetClassRoomLoginInfoWithParam` — `POST {rest}/users3/getclassroominfo`.
    */
   async getClassroomLoginInfo(
     options: ClassroomLoginInfoOptions = {},
   ): Promise<Result<ClassroomLoginInfoResponse>> {
     return csEnvelope(
       await this.ctx.request({
-        base: "root",
+        base: "rest",
         path: "users3/getclassroominfo",
         method: "POST",
         json: this.ctx.csBody(options),
@@ -151,6 +161,8 @@ export class Auth {
       }),
     );
     this.ctx.cookies.clear("cs");
+    // Signing out is deliberate. Nothing should quietly sign back in.
+    this.ctx.onSessionLapsed(undefined);
     return result;
   }
 
@@ -274,6 +286,23 @@ export class Auth {
         json: this.ctx.csBody(options),
       }),
     );
+  }
+
+  /**
+   * Arranges for a lapsed session to be signed back in, the way
+   * `executeWithAutoLoginFor` does.
+   *
+   * Only with a password: it is the one credential `/users3/login` accepts, and
+   * a client that was handed a session rather than a login has nothing to
+   * repeat. Storing the whole call rather than the fields keeps the two login
+   * kinds — normal and ClassRoom — from having to be told apart again later.
+   */
+  private rememberHowToReturn(
+    password: string | undefined,
+    signIn: () => Promise<Result<LoginResponse>>,
+  ): void {
+    if (!password) return;
+    this.ctx.onSessionLapsed(async () => (await signIn()).error === null);
   }
 
   /** Copies a login response into the client's host and identity state. */

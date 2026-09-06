@@ -214,24 +214,86 @@ function tspFiles(dir: string): string[] {
 }
 
 /** `Interface.operation` for every operation declared in the spec. */
-function specOperations(): { key: string; file: string }[] {
-  const operations: { key: string; file: string }[] = [];
+function specOperations(): { key: string; file: string; route?: string }[] {
+  const operations: { key: string; file: string; route?: string }[] = [];
   for (const file of tspFiles(typespecRoot).sort()) {
     const source = readFileSync(file, "utf8");
     let currentInterface = "";
-    const pattern = /interface\s+(\w+)\s*\{|^[ \t]*op\s+(\w+)\s*\(/gm;
+    let route: string | undefined;
+    const pattern =
+      /interface\s+(\w+)\s*\{|^[ \t]*@route\("([^"]*)"\)|^[ \t]*op\s+(\w+)\s*\(/gm;
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(source))) {
       if (match[1]) currentInterface = match[1];
+      else if (match[2] !== undefined) route = match[2];
       else {
         operations.push({
-          key: `${currentInterface}.${match[2]}`,
+          key: `${currentInterface}.${match[3]}`,
           file: relative(typespecRoot, file),
+          route,
         });
+        route = undefined;
       }
     }
   }
   return operations;
+}
+
+/**
+ * Paths the client needs that the spec does not declare.
+ *
+ * `mpsroot/RequestServlet` is the school lookup — the call that turns a school
+ * id into the tenant host every later call is addressed against. Nothing works
+ * without it, and it is served by an older servlet that predates the REST API,
+ * which is presumably why the recovered spec has no operation for it.
+ */
+const UNDECLARED = new Set(["mpsroot/RequestServlet"]);
+
+function normalise(route: string): string {
+  return route
+    .replace(/^\//, "")
+    .replace(/\?.*$/, "")
+    .replace(/\$\{[^}]*\}/g, "*")
+    .replace(/\{[^}]*\}/g, "*");
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Every path a resource asks for, read out of the source.
+ *
+ * Only literals in a path position — the `path:` of a request spec, and the
+ * first argument of a resource's own `post`/`send`/`spec` helper. Scanning all
+ * strings instead would sweep up content types and XML fragments, which look
+ * enough like paths to be indistinguishable.
+ */
+function requestPaths(): { file: string; path: string }[] {
+  const found: { file: string; path: string }[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (entry.endsWith(".ts") && entry !== "interfaces.ts") collect(full);
+    }
+  };
+  const collect = (file: string): void => {
+    const source = readFileSync(file, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    const add = (literal: string) => {
+      const path = literal.slice(1, -1);
+      if (!path.includes("/") || /^[a-z][a-z0-9+.-]*:\/\//i.test(path)) return;
+      found.push({ file: relative(join(here, "resources"), file), path });
+    };
+    for (const m of source.matchAll(/\bpath:\s*(`[^`\n]*`|"[^"\n]*")/g)) add(m[1]);
+    for (const m of source.matchAll(/this\.\w+\(\s*(?:[^,()]*,\s*)?(`[^`\n]*`|"[^"\n]*")/g)) {
+      add(m[1]);
+    }
+  };
+  walk(join(here, "resources"));
+  return found;
 }
 
 function resolve(client: Metamoji, path: string): unknown {
@@ -263,6 +325,38 @@ describe("TypeSpec coverage", () => {
 
   it.each(Object.entries(COVERAGE))("%s is implemented by %s", (_key, path) => {
     expect(typeof resolve(client, path)).toBe("function");
+  });
+
+  it("addresses only paths the spec declares", () => {
+    // The test above proves a method exists; this one proves it goes somewhere
+    // real. Nothing else compares the two — a wrapper can be written against a
+    // route that was mistyped, or against one the spec has since renamed, and
+    // every other test in this repo will still pass.
+    const declared = operations
+      .map((o) => o.route)
+      .filter((route): route is string => route !== undefined)
+      .map(normalise);
+    const matches = (path: string) => {
+      const candidate = normalise(path);
+      // `*` stands for an interpolated id on one side and a path parameter on
+      // the other, so the comparison is by pattern rather than by string.
+      return declared.some((route) =>
+        new RegExp(`^${route.split("*").map(escapeRegExp).join("[^/]*")}$`).test(candidate) ||
+        new RegExp(`^${candidate.split("*").map(escapeRegExp).join("[^/]*")}$`).test(route),
+      );
+    };
+
+    const strays = requestPaths()
+      .filter((p) => !UNDECLARED.has(normalise(p.path)))
+      .filter((p) => !matches(p.path));
+    expect(strays.map((p) => `${p.file}: ${p.path}`)).toEqual([]);
+  });
+
+  it("checks a path for most of the operations, so the count cannot quietly fall", () => {
+    // The paths are read out of the source rather than by calling anything, so
+    // this is a floor rather than a total: a resource that builds its path some
+    // new way would drop out of the check above without failing it.
+    expect(requestPaths().length).toBeGreaterThanOrEqual(100);
   });
 
   it("maps each operation to a distinct method", () => {
