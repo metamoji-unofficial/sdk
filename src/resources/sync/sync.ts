@@ -13,123 +13,30 @@
  * `"false"`, because `toMap()` stores them as `String`.
  */
 
-import { joinUrl } from "../core/config.js";
-import { SD_NOT_LOGIN, sdEnvelope } from "../core/envelope.js";
-import type { MetamojiContext, RequestSpec } from "../core/http.js";
-import { fail, ok, type Result } from "../core/result.js";
-import type { BinaryPayload, JsonRecord } from "../core/types.js";
-
-/** Every sync response carries these (`SdResponseResult`). */
-export interface SdResponseBase {
-  /** 0 is success. `0x2af9` is "not logged in", `0x2afa` a revision conflict. */
-  errorCode?: number;
-  errorName?: string;
-  errorMessage?: string;
-  errorData?: JsonRecord;
-  bodyMessage?: JsonRecord;
-  httpStatusCode?: number;
-  isUnderMaintenance?: boolean;
-  maintMessage?: string;
-}
-
-/** Options accepted by every call: which drive host to talk to. */
-export interface SyncScope {
-  /** Overrides the client's `homeDir` for this call. */
-  homeDir?: string;
-}
-
-export interface SyncLoginOptions extends SyncScope {
-  userId?: string;
-  password?: string;
-  qwd?: string;
-}
-
-export interface SyncLoginResponse extends SdResponseBase {
-  userId?: string;
-}
-
-export interface SyncStartResponse extends SdResponseBase {
-  driveId?: string;
-  entryType?: number;
-}
-
-export interface DriveLastUpdateRevisionResponse extends SdResponseBase {
-  driveId?: string;
-  lastUpdateRevision?: string;
-}
-
-export interface DrivePropertiesResponse extends SdResponseBase {
-  driveId?: string;
-  /** Bytes used, as a string. The unit is server-defined and unverified. */
-  amountUsed?: string;
-}
-
-export interface PutDriveDataResponse extends SdResponseBase {
-  driveId?: string;
-  revision?: string;
-}
-
-export interface DocumentMetaResponse extends SdResponseBase {
-  documentId?: string;
-  driveId?: string;
-  meta?: JsonRecord;
-}
-
-export interface PutDocumentDataResponse extends SdResponseBase {
-  documentId?: string;
-  driveId?: string;
-  revision?: string;
-  /** Whether the server treated the upload as coming from a v2 client. */
-  registeredFromV2?: boolean;
-}
-
-export interface DeleteDocumentDataResponse extends SdResponseBase {
-  documentId?: string;
-  driveId?: string;
-}
-
-export interface TurnOnEditFlagOptions extends SyncScope {
-  locationId?: string;
-  contentsRevision?: string;
-  /** Takes the flag even when someone else holds it. */
-  force?: boolean;
-}
-
-export interface TurnOnEditFlagResponse extends SdResponseBase {
-  userId?: string;
-  locationId?: string;
-  editFlag?: boolean;
-  hasEditFlag?: boolean;
-}
-
-export interface TurnOffEditFlagOptions extends SyncScope {
-  locationId?: string;
-  contentsRevision?: string;
-  /** Releases every flag the user holds, not just this document's. */
-  isAll?: boolean;
-}
-
-export interface GetDocumentDataOptions extends SyncScope {
-  revision?: string;
-  /**
-   * Adds `caching=1`. The app sets it when no user is signed in; left unset it
-   * follows that rule using the client's own session.
-   */
-  caching?: boolean;
-}
-
-export interface PutDocumentDataOptions extends SyncScope {
-  /** Concurrency check token. */
-  check?: string;
-  /** Marks the upload as coming from a v2 client. */
-  fromV2?: boolean;
-}
-
-export interface DeleteDocumentDataOptions extends SyncScope {
-  check?: string;
-  /** Update time. A `Date` is converted to the epoch milliseconds the app sends. */
-  update?: string | number | Date;
-}
+import { joinUrl } from "../../core/url.js";
+import { SD_NOT_LOGIN, sdEnvelope } from "../../core/envelope.js";
+import type { HttpResult, MetamojiContext, RequestSpec } from "../../core/http.js";
+import { fail, ok, type Result } from "../../core/result.js";
+import type { BinaryPayload, JsonRecord } from "../../core/types.js";
+import type {
+  DeleteDocumentDataOptions,
+  DeleteDocumentDataResponse,
+  DocumentMetaResponse,
+  DriveLastUpdateRevisionResponse,
+  DrivePropertiesResponse,
+  GetDocumentDataOptions,
+  PutDocumentDataOptions,
+  PutDocumentDataResponse,
+  PutDriveDataResponse,
+  SdResponseBase,
+  SyncLoginOptions,
+  SyncLoginResponse,
+  SyncScope,
+  SyncStartResponse,
+  TurnOffEditFlagOptions,
+  TurnOnEditFlagOptions,
+  TurnOnEditFlagResponse,
+} from "./interfaces.js";
 
 export class Sync {
   constructor(private readonly ctx: MetamojiContext) {}
@@ -144,10 +51,15 @@ export class Sync {
   async login(options: SyncLoginOptions = {}): Promise<Result<SyncLoginResponse>> {
     const { homeDir, ...body } = options;
     const session = this.ctx.session;
+    // All three keys, always. `SdLoginParams.toMap()` puts `userId`,
+    // `password` and `qwd` in unconditionally, and `CmJson.createJsonValue`
+    // turns a null into `JSONObject.NULL` rather than dropping the key — so
+    // the wire always carries three fields, one of them null. Omitting the
+    // unused one is not equivalent: the server answers 500.
     const payload = {
-      userId: body.userId ?? session.userId,
-      ...(body.password ?? session.password ? { password: body.password ?? session.password } : {}),
-      ...(body.qwd ?? session.qwd ? { qwd: body.qwd ?? session.qwd } : {}),
+      userId: body.userId ?? session.userId ?? null,
+      password: body.password ?? session.password ?? null,
+      qwd: body.qwd ?? session.qwd ?? null,
     };
     this.ctx.cookies.clear("sd");
     return sdEnvelope(
@@ -508,9 +420,9 @@ export class Sync {
    * sync call rather than exposing as an endpoint of its own.
    */
   private async send<T extends SdResponseBase>(
-    run: (options: SyncScope) => Promise<Result<import("../core/http.js").HttpResult>>,
+    run: (options: SyncScope) => Promise<Result<HttpResult>>,
     options: SyncScope,
-    envelope: (result: Result<import("../core/http.js").HttpResult>) => Result<T>,
+    envelope: (result: Result<HttpResult>) => Result<T>,
   ): Promise<Result<T>> {
     const first = envelope(await run(options));
     if (!this.shouldRetry(first)) return first;
@@ -520,11 +432,11 @@ export class Sync {
   }
 
   private async download(
-    run: (options: SyncScope) => Promise<Result<import("../core/http.js").HttpResult>>,
+    run: (options: SyncScope) => Promise<Result<HttpResult>>,
     options: SyncScope,
   ): Promise<Result<BinaryPayload>> {
     const toPayload = (
-      result: Result<import("../core/http.js").HttpResult>,
+      result: Result<HttpResult>,
     ): Result<BinaryPayload> => {
       if (result.error) return fail(result.error);
       // A JSON body here is an error envelope, not the file.
