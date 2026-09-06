@@ -7,124 +7,79 @@
  * records both, so a successful `login()` is all the setup a caller needs.
  */
 
-import { csEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import type { Result } from "../core/result.js";
-import type { CsLoginInfo, CsRequestBase, CsResponseBase, JsonRecord } from "../core/types.js";
-
-export interface LoginOptions extends CsRequestBase {
-  /** The organisation's login id — the tenant code on the login screen. */
-  coLoginId?: string;
-  email?: string;
-  loginName?: string;
-  password?: string;
-  /** The password surrogate the server issues; used instead of `password`. */
-  qwd?: string;
-  serverDeviceId?: string;
-  userId?: string;
-}
-
-export interface LoginResponse extends CsResponseBase {
-  coLoginId?: string;
-  companyId?: string;
-  companyName?: string;
-  companyVersion?: number;
-  email?: string;
-  isClassRoom?: boolean;
-  isOnPremise?: boolean;
-  loginName?: string;
-  /** Absolute URL of the tenant's maintenance text, when it has its own. */
-  maintCheckURL?: string;
-  name?: string;
-  qwd?: string;
-  /** The tenant host every later call is resolved against. */
-  restHost?: string;
-  serverDeviceId?: string;
-  serverVersion?: number;
-  userId?: string;
-}
-
-export interface ClassroomLoginOptions extends CsRequestBase {
-  classGroupId?: string;
-  coLoginId?: string;
-  /** The pupil's number within the class. */
-  idNumber?: string;
-  password?: string;
-}
-
-export interface ClassroomLoginInfoOptions extends CsRequestBase {
-  coLoginId?: string;
-}
-
-export interface ClassroomLoginInfoResponse extends CsResponseBase {
-  /** Schools and classes to choose from. Shape is server-defined. */
-  allList?: JsonRecord;
-}
-
-export interface RegisterOptions extends CsRequestBase {
-  coLoginId?: string;
-  companyId?: string;
-  email?: string;
-  loginName?: string;
-  name?: string;
-  /** Invitation / sign-up code. */
-  passcode?: string;
-  password?: string;
-}
-
-export interface RegisterResponse extends CsResponseBase {
-  email?: string;
-  locale?: string;
-  name?: string;
-  password?: string;
-  timezone?: string;
-  uuid?: string;
-}
-
-export interface WithdrawOptions extends CsRequestBase {
-  password?: string;
-}
-
-export interface ChangePasswordOptions extends CsRequestBase {
-  passwordNew?: string;
-  passwordOld?: string;
-}
-
-export interface ResetPasswordOptions extends CsRequestBase {
-  email?: string;
-  userId?: string;
-}
-
-export interface LockUserOptions extends CsRequestBase {
-  /** Non-zero asks the server to recover rather than lock. */
-  isRecover?: number;
-  lockToken?: string;
-}
-
-export interface LockUserResponse extends CsResponseBase {
-  needRecovery?: boolean;
-}
-
-export interface UnlockUserOptions extends CsRequestBase {
-  lockToken?: string;
-}
-
-export interface AgreeEulaOptions extends CsRequestBase {
-  eulaAgreeVersion?: number;
-}
-
-export interface GetCredentialOptions extends CsRequestBase {
-  param1?: string;
-  param2?: string;
-  param3?: string;
-}
-
-export interface GetCredentialResponse extends CsResponseBase {
-  loginInfo?: CsLoginInfo;
-}
+import { csEnvelope } from "../../core/envelope.js";
+import { withTrailingSlash } from "../../core/url.js";
+import type { MetamojiContext } from "../../core/http.js";
+import { fail, ok, type Result } from "../../core/result.js";
+import type { CsRequestBase, CsResponseBase } from "../../core/types.js";
+import type {
+  AgreeEulaOptions,
+  ChangePasswordOptions,
+  ClassroomLoginInfoOptions,
+  ClassroomLoginInfoResponse,
+  ClassroomLoginOptions,
+  GetCredentialOptions,
+  GetCredentialResponse,
+  LockUserOptions,
+  LockUserResponse,
+  LoginOptions,
+  LoginResponse,
+  RegisterOptions,
+  RegisterResponse,
+  ResetPasswordOptions,
+  SchoolResponse,
+  UnlockUserOptions,
+  WithdrawOptions,
+} from "./interfaces.js";
 
 export class Auth {
   constructor(private readonly ctx: MetamojiContext) {}
+
+  /**
+   * Finds the tenant a school code belongs to, before there is a session.
+   *
+   * `ExecuteGetServerUrlWithParams` — `GET {root}/mpsroot/RequestServlet?coLoginId=…`.
+   * A plain query string rather than the JSON envelope everything else uses:
+   * it is served by a different servlet that predates the REST API, and it
+   * answers with no `errorCode` either.
+   *
+   * This is the first call a school account makes. Without the host it
+   * returns, `login` has nowhere to go — so on success the client adopts it as
+   * `restHost`.
+   */
+  async resolveSchool(coLoginId: string, options: { adopt?: boolean } = {}): Promise<Result<SchoolResponse>> {
+    const { adopt = true } = options;
+    const response = await this.ctx.request({
+      base: "root",
+      path: `mpsroot/RequestServlet?coLoginId=${encodeURIComponent(coLoginId)}`,
+      method: "GET",
+    });
+    if (response.error) return fail(response.error);
+
+    const body = (response.data?.json ?? {}) as Record<string, unknown>;
+    // `serverURL`, not `serverUrl`. The Java *field* is `serverUrl`, but
+    // `ExecuteGetServerUrlWithParams` reads the JSON key by hand and the key
+    // is capitalised. Reading the field name instead makes every school look
+    // as though it does not exist.
+    const serverUrl = body.serverURL ?? body.serverUrl;
+    if (typeof serverUrl !== "string" || serverUrl.length === 0) {
+      // The servlet answers 200 with an empty body for a code it does not
+      // know, so "not found" has to be read from the absence of a host.
+      return fail({
+        name: "application_error",
+        message: `No server is registered for the school id "${coLoginId}".`,
+      });
+    }
+
+    const school: SchoolResponse = {
+      serverUrl: withTrailingSlash(serverUrl),
+      coLoginId,
+      isClassRoom: body.isClassRoom === true,
+      isOnPremise: body.isOnPremise === true,
+    };
+    if (adopt) this.ctx.setRestHost(school.serverUrl);
+    return ok(school);
+  }
 
   /**
    * Signs in with a user id or email address.
@@ -324,9 +279,13 @@ export class Auth {
   /** Copies a login response into the client's host and identity state. */
   private adoptSession(response: LoginResponse, password: string | undefined): void {
     this.ctx.setRestHost(response.restHost);
-    if (response.maintCheckURL) this.ctx.config.maintenanceUrl = response.maintCheckURL;
+    const maintenance = response.maintCheckURL ?? response.maintchkurl;
+    if (maintenance) this.ctx.config.maintenanceUrl = maintenance;
     this.ctx.setSession({
-      userId: response.userId,
+      // `uuid` first: a real tenant answers with that and no `userId`, and
+      // sends it as a number. Everything downstream — the drive service's
+      // login, the room's `authInfo` — needs it as a string.
+      userId: scalar(response.uuid ?? response.userId),
       loginName: response.loginName,
       email: response.email,
       qwd: response.qwd,
@@ -337,4 +296,13 @@ export class Auth {
       ...(password ? { password } : {}),
     });
   }
+}
+
+/**
+ * `CmUtils.toString`: the app runs every scalar through it, so a field the
+ * server sends as a number arrives as a string everywhere it is used.
+ */
+function scalar(value: string | number | boolean | undefined): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  return typeof value === "string" ? value : String(value);
 }
