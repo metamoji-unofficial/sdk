@@ -1,0 +1,788 @@
+[
+  {
+    "key": "Auth.login",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users3/login"
+  },
+  {
+    "key": "Auth.classRoomLogin",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users3/classroomlogin"
+  },
+  {
+    "key": "Auth.getClassRoomLoginInfo",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users3/getclassroominfo"
+  },
+  {
+    "key": "Auth.logout",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users3/logout"
+  },
+  {
+    "key": "Auth.register",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users2/register"
+  },
+  {
+    "key": "Auth.withdraw",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users2/withdraw/"
+  },
+  {
+    "key": "Auth.changePassword",
+    "file": "auth/auth.tsp",
+    "method": "PUT",
+    "route": "/users2/change/password"
+  },
+  {
+    "key": "Auth.resetPassword",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users2/reissue/password"
+  },
+  {
+    "key": "Auth.lockUser",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users2/lock"
+  },
+  {
+    "key": "Auth.unlockUser",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users2/unlock"
+  },
+  {
+    "key": "Auth.agreeEula",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/users2/eula/agree"
+  },
+  {
+    "key": "Auth.getCredential",
+    "file": "auth/auth.tsp",
+    "method": "POST",
+    "route": "/sso/requestcredential"
+  },
+  {
+    "key": "Users.getUserInfo",
+    "file": "auth/user.tsp",
+    "method": "GET",
+    "route": "/users2/login/user"
+  },
+  {
+    "key": "Users.updateUserInfo",
+    "file": "auth/user.tsp",
+    "method": "PUT",
+    "route": "/users2/login/user"
+  },
+  {
+    "key": "Users.getUserAndSystemInfo",
+    "file": "auth/user.tsp",
+    "method": "GET",
+    "route": "/system2/user2"
+  },
+  {
+    "key": "Users.getAllUsers",
+    "file": "auth/user.tsp",
+    "method": "POST",
+    "route": "/users3/getallusers"
+  },
+  {
+    "key": "Users.getAllGroups",
+    "file": "auth/user.tsp",
+    "method": "POST",
+    "route": "/users3/getallgroups"
+  },
+  {
+    "key": "Users.getUserNames",
+    "file": "auth/user.tsp",
+    "method": "POST",
+    "route": "/users3/login/company/usernames"
+  },
+  {
+    "key": "ClassBoxes.createClassBox",
+    "file": "classroom/classbox.tsp",
+    "method": "POST",
+    "route": "/users3/crbox/create"
+  },
+  {
+    "key": "ClassBoxes.joinClassBox",
+    "file": "classroom/classbox.tsp",
+    "method": "POST",
+    "route": "/users3/crbox/join"
+  },
+  {
+    "key": "ClassBoxes.updateClassBoxInfo",
+    "file": "classroom/classbox.tsp",
+    "method": "POST",
+    "route": "/users3/crbox/update"
+  },
+  {
+    "key": "ClassBoxes.getClassCode",
+    "file": "classroom/classbox.tsp",
+    "method": "POST",
+    "route": "/users3/crbox/get/joincode"
+  },
+  {
+    "key": "Collabo.createRoom",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/CreateRoom"
+  },
+  {
+    "key": "Collabo.loginRoom",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/LoginRoom"
+  },
+  {
+    "key": "Collabo.createUniqueId",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/CreateUniqueID"
+  },
+  {
+    "key": "Collabo.getRoomInfo",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/GetRoomInfo"
+  },
+  {
+    "key": "Collabo.modifyRole",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/ModifyRole"
+  },
+  {
+    "key": "Collabo.getMemberList",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/GetMemberList"
+  },
+  {
+    "key": "Collabo.getServletInfo",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/GetServletInfo"
+  },
+  {
+    "key": "Collabo.updateRoomMode",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/UpdateRoomInfo"
+  },
+  {
+    "key": "Collabo.updateRoomInfo",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "cosmos/UpdateRoomInfo"
+  },
+  {
+    "key": "Collabo.checkRole",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "mmjcloud/ShareViewGetMyRole"
+  },
+  {
+    "key": "Collabo.getRoomTitleDate",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "mmjcloud/ShareViewGetRoomInfo"
+  },
+  {
+    "key": "Collabo.updateRoomTitleDate",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "mmjcloud/ShareViewSetRoomInfo"
+  },
+  {
+    "key": "Collabo.getRoomSetting",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "mmjcloud/ShareViewGetRoomSetting"
+  },
+  {
+    "key": "Collabo.updateRoomSetting",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "mmjcloud/ShareViewSetRoomSetting"
+  },
+  {
+    "key": "Collabo.getShareViewList",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "mmjcloud/ShareViewGetList"
+  },
+  {
+    "key": "Collabo.toolLogin",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "mmjeditor2/CosmosToolLogin"
+  },
+  {
+    "key": "Collabo.postGallery",
+    "file": "classroom/collabo.tsp",
+    "method": "POST",
+    "route": "gallery/PostForShareAnytime"
+  },
+  {
+    "key": "Distribute.distributeClass",
+    "file": "classroom/distribute.tsp",
+    "method": "POST",
+    "route": "convert/DistributeClass"
+  },
+  {
+    "key": "Distribute.getDistributeStatus",
+    "file": "classroom/distribute.tsp",
+    "method": "POST",
+    "route": "convert/GetDistributeStatus"
+  },
+  {
+    "key": "Distribute.postCrashLogs",
+    "file": "classroom/distribute.tsp",
+    "method": "POST",
+    "route": "crashlogs/upload"
+  },
+  {
+    "key": "Gradebook.getScoreList",
+    "file": "classroom/gradebook.tsp",
+    "method": "POST",
+    "route": "/cosmos/GetScoreList"
+  },
+  {
+    "key": "Gradebook.getTestingLogList",
+    "file": "classroom/gradebook.tsp",
+    "method": "POST",
+    "route": "/cosmos/GetTestingLogList"
+  },
+  {
+    "key": "Gradebook.setReport",
+    "file": "classroom/gradebook.tsp",
+    "method": "POST",
+    "route": "/cosmos/SetReport"
+  },
+  {
+    "key": "Gradebook.setScore",
+    "file": "classroom/gradebook.tsp",
+    "method": "POST",
+    "route": "/cosmos/SetScore"
+  },
+  {
+    "key": "Drives.createDrive",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/drives/create"
+  },
+  {
+    "key": "Drives.deleteDrive",
+    "file": "drive/drive.tsp",
+    "method": "DELETE",
+    "route": "/drives/{driveId}/data"
+  },
+  {
+    "key": "Drives.renameDrive",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/drives/renamedrive"
+  },
+  {
+    "key": "Drives.getDriveHome",
+    "file": "drive/drive.tsp",
+    "method": "GET",
+    "route": "/drives/{driveId}/home"
+  },
+  {
+    "key": "Drives.getPrivateDriveHome",
+    "file": "drive/drive.tsp",
+    "method": "GET",
+    "route": "/v3/users/login/home"
+  },
+  {
+    "key": "Drives.getDriveEntry",
+    "file": "drive/drive.tsp",
+    "method": "GET",
+    "route": "/drives/entry"
+  },
+  {
+    "key": "Drives.getDriveEntryInfo",
+    "file": "drive/drive.tsp",
+    "method": "GET",
+    "route": "/drives/entryinfo"
+  },
+  {
+    "key": "Drives.updateEntryHidden",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/drives/entryhidden"
+  },
+  {
+    "key": "Drives.getDriveMemberList",
+    "file": "drive/drive.tsp",
+    "method": "GET",
+    "route": "/drives/{driveId}/allmembers2"
+  },
+  {
+    "key": "Drives.inviteToDrive",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/drives/{driveId}/invite2"
+  },
+  {
+    "key": "Drives.reInviteToDrive",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/drives/{driveId}/reinvite"
+  },
+  {
+    "key": "Drives.excludeMemberFromDrive",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/drives/{driveId}/members/users"
+  },
+  {
+    "key": "Drives.unreferenceDrive",
+    "file": "drive/drive.tsp",
+    "method": "DELETE",
+    "route": "/drives/{driveId}/members/own"
+  },
+  {
+    "key": "Drives.updateMemberType",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/drives/{driveId}/members/type"
+  },
+  {
+    "key": "Drives.getStorageUsage",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/users2/recalc"
+  },
+  {
+    "key": "Drives.createLink",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/link/create"
+  },
+  {
+    "key": "Drives.reverseLink",
+    "file": "drive/drive.tsp",
+    "method": "POST",
+    "route": "/link/reverse"
+  },
+  {
+    "key": "SyncDrive.login",
+    "file": "drive/sync-drive.tsp",
+    "method": "POST",
+    "route": "/rest/users/login"
+  },
+  {
+    "key": "SyncDrive.syncStart",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/syncstart"
+  },
+  {
+    "key": "SyncDrive.getDriveData",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/data"
+  },
+  {
+    "key": "SyncDrive.getDriveLastUpdateRevision",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/lastupdaterevision"
+  },
+  {
+    "key": "SyncDrive.getDriveProperties",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/properties"
+  },
+  {
+    "key": "SyncDrive.putDriveData",
+    "file": "drive/sync-drive.tsp",
+    "method": "PUT",
+    "route": "/rest/drives/{driveId}/data"
+  },
+  {
+    "key": "SyncDrive.getDocumentData",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/data"
+  },
+  {
+    "key": "SyncDrive.getDocumentMeta",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/meta"
+  },
+  {
+    "key": "SyncDrive.getDocumentSearchData",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/searchdata"
+  },
+  {
+    "key": "SyncDrive.getDocumentThumbnail",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/thumbnail"
+  },
+  {
+    "key": "SyncDrive.putDocumentData",
+    "file": "drive/sync-drive.tsp",
+    "method": "PUT",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/data"
+  },
+  {
+    "key": "SyncDrive.deleteDocumentData",
+    "file": "drive/sync-drive.tsp",
+    "method": "DELETE",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/data"
+  },
+  {
+    "key": "SyncDrive.turnOnEditFlag",
+    "file": "drive/sync-drive.tsp",
+    "method": "POST",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/editflag/turnon"
+  },
+  {
+    "key": "SyncDrive.turnOffEditFlag",
+    "file": "drive/sync-drive.tsp",
+    "method": "POST",
+    "route": "/rest/drives/{driveId}/documents/{documentId}/editflag/turnoff"
+  },
+  {
+    "key": "SyncDrive.getMaintenanceInfo",
+    "file": "drive/sync-drive.tsp",
+    "method": "GET",
+    "route": "{maintenanceUrl}"
+  },
+  {
+    "key": "WebDavStorage.get",
+    "file": "drive/webdav.tsp",
+    "method": "GET",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "WebDavStorage.put",
+    "file": "drive/webdav.tsp",
+    "method": "PUT",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "WebDavStorage.head",
+    "file": "drive/webdav.tsp",
+    "method": "HEAD",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "WebDavStorage.delete",
+    "file": "drive/webdav.tsp",
+    "method": "DELETE",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "WebDavStorage.createDirectory",
+    "file": "drive/webdav.tsp",
+    "method": "POST",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "WebDavStorage.move",
+    "file": "drive/webdav.tsp",
+    "method": "POST",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "WebDavStorage.propfind",
+    "file": "drive/webdav.tsp",
+    "method": "POST",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "WebDavStorage.proppatch",
+    "file": "drive/webdav.tsp",
+    "method": "POST",
+    "route": "{resourceUrl}"
+  },
+  {
+    "key": "LibraryStore.login",
+    "file": "legacy/library-store.tsp",
+    "method": "POST",
+    "route": "store/Login"
+  },
+  {
+    "key": "LibraryStore.getAllPages",
+    "file": "legacy/library-store.tsp",
+    "method": "GET",
+    "route": "store/GetAllPages"
+  },
+  {
+    "key": "LibraryStore.getPage",
+    "file": "legacy/library-store.tsp",
+    "method": "GET",
+    "route": "{pageURL}"
+  },
+  {
+    "key": "LibraryStore.downloadProduct",
+    "file": "legacy/library-store.tsp",
+    "method": "GET",
+    "route": "{productURL}"
+  },
+  {
+    "key": "RemoteConverter.tentativeRegist",
+    "file": "legacy/remote-converter.tsp",
+    "method": "POST",
+    "route": "/convert/TentativeRegist"
+  },
+  {
+    "key": "RemoteConverter.convertRequest",
+    "file": "legacy/remote-converter.tsp",
+    "method": "POST",
+    "route": "/convert/ConvertRequest"
+  },
+  {
+    "key": "RemoteConverter.getConvertedFile",
+    "file": "legacy/remote-converter.tsp",
+    "method": "POST",
+    "route": "/convert/GetConvertedFile"
+  },
+  {
+    "key": "LicenseActivation.activate",
+    "file": "licensing/license-activation.tsp",
+    "method": "POST",
+    "route": "license/activate2/"
+  },
+  {
+    "key": "LicenseActivation.getRemainingDays",
+    "file": "licensing/license-activation.tsp",
+    "method": "POST",
+    "route": "license/getremainingdays/"
+  },
+  {
+    "key": "Licensing.inkAmountSync",
+    "file": "licensing/license.tsp",
+    "method": "POST",
+    "route": "/License"
+  },
+  {
+    "key": "Licensing.purchaseLicense",
+    "file": "licensing/license.tsp",
+    "method": "POST",
+    "route": "/Purchase"
+  },
+  {
+    "key": "Licensing.dummyPurchaseLicense",
+    "file": "licensing/license.tsp",
+    "method": "POST",
+    "route": "/DummyPurchase"
+  },
+  {
+    "key": "Licensing.productLicenseSync",
+    "file": "licensing/license.tsp",
+    "method": "POST",
+    "route": "/ProductLicense"
+  },
+  {
+    "key": "Licensing.simulationPurchase",
+    "file": "licensing/license.tsp",
+    "method": "POST",
+    "route": "/SimPurchase"
+  },
+  {
+    "key": "Licensing.getShareInfo",
+    "file": "licensing/license.tsp",
+    "method": "POST",
+    "route": "/GetShareInfo"
+  },
+  {
+    "key": "MazecDictionaryUpdateCheck.getSysInfo",
+    "file": "licensing/mazec-purchase.tsp",
+    "method": "GET",
+    "route": "legacy-mazec-dictionary/sysinfo_Android-Share-G-ClassRoom.json"
+  },
+  {
+    "key": "GalleryMedia.login",
+    "file": "media/gallery-media.tsp",
+    "method": "POST",
+    "route": "gallery/LoginMedia"
+  },
+  {
+    "key": "GalleryMedia.getMediaList",
+    "file": "media/gallery-media.tsp",
+    "method": "GET",
+    "route": "gallery/GetMediaList"
+  },
+  {
+    "key": "GalleryMedia.getMediaStatus",
+    "file": "media/gallery-media.tsp",
+    "method": "GET",
+    "route": "gallery/GetMediaStatus"
+  },
+  {
+    "key": "GalleryMedia.tentativeRegistMedia",
+    "file": "media/gallery-media.tsp",
+    "method": "POST",
+    "route": "gallery/TentativeRegistMedia"
+  },
+  {
+    "key": "GalleryMedia.uploadMedia",
+    "file": "media/gallery-media.tsp",
+    "method": "POST",
+    "route": "gallery/UploadMedia"
+  },
+  {
+    "key": "GalleryMedia.getMediaFile",
+    "file": "media/gallery-media.tsp",
+    "method": "GET",
+    "route": "gallery/GetMediaFile/"
+  },
+  {
+    "key": "GalleryMedia.setMediaTitle",
+    "file": "media/gallery-media.tsp",
+    "method": "POST",
+    "route": "gallery/SetMediaTitle"
+  },
+  {
+    "key": "GalleryMedia.deleteMediaFile",
+    "file": "media/gallery-media.tsp",
+    "method": "POST",
+    "route": "gallery/DeleteMediaFile"
+  },
+  {
+    "key": "VideoNotes.getClipList",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/getlist2"
+  },
+  {
+    "key": "VideoNotes.getClipCount",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/getclipcount2"
+  },
+  {
+    "key": "VideoNotes.getClipInfo",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/getclipinfo2"
+  },
+  {
+    "key": "VideoNotes.getPosterFrame",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/getposterframe2"
+  },
+  {
+    "key": "VideoNotes.deleteClip",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/deleteclip2"
+  },
+  {
+    "key": "VideoNotes.exportClip",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/exportclipinfo2"
+  },
+  {
+    "key": "VideoNotes.getServerCoInfo",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/getcoinfo2"
+  },
+  {
+    "key": "VideoNotes.getServerStatus",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/getserverstatus2"
+  },
+  {
+    "key": "VideoNotes.getUploadPoint",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/getuploadpoint2"
+  },
+  {
+    "key": "VideoNotes.reserve",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "flora/api/v1/reserve2"
+  },
+  {
+    "key": "VideoNotes.uploadFile",
+    "file": "media/video.tsp",
+    "method": "POST",
+    "route": "{uploadUrl}"
+  },
+  {
+    "key": "DirectMessages.getDirectMessage",
+    "file": "messaging/messaging.tsp",
+    "method": "GET",
+    "route": "/system2/user/directmessage2/"
+  },
+  {
+    "key": "DirectMessages.deleteDirectMessage",
+    "file": "messaging/messaging.tsp",
+    "method": "DELETE",
+    "route": "/system2/user/directmessage/"
+  },
+  {
+    "key": "Misc.getMaintenanceInfo",
+    "file": "system/misc.tsp",
+    "method": "GET",
+    "route": "/maintenance2_common.txt"
+  },
+  {
+    "key": "Misc.addApiLog",
+    "file": "system/misc.tsp",
+    "method": "POST",
+    "route": "/users3/apilog/register"
+  },
+  {
+    "key": "Misc.postCrashLogs",
+    "file": "system/misc.tsp",
+    "method": "GET",
+    "route": "/mpsroot/crashlog/upload"
+  },
+  {
+    "key": "ClientSettings.getClientSettings",
+    "file": "system/settings.tsp",
+    "method": "POST",
+    "route": "/users2/login/getclientsettings"
+  },
+  {
+    "key": "ClientSettings.setClientSettings",
+    "file": "system/settings.tsp",
+    "method": "POST",
+    "route": "/users2/login/setclientsettings"
+  },
+  {
+    "key": "ClientSettings.getClientFile",
+    "file": "system/settings.tsp",
+    "method": "POST",
+    "route": "/users2/login/getclientfile"
+  },
+  {
+    "key": "ClientSettings.setClientFile",
+    "file": "system/settings.tsp",
+    "method": "POST",
+    "route": "/users2/login/setclientfile"
+  },
+  {
+    "key": "SysInfo.getSysInfo",
+    "file": "system/sysinfo.tsp",
+    "method": "GET",
+    "route": "sysinfo_Android-Share-G-ClassRoom.json"
+  }
+]
