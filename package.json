@@ -1,0 +1,30 @@
+{
+  "name": "metamoji-api",
+  "version": "0.1.0",
+  "description": "Resend-style TypeScript client for the (unofficial, reverse-engineered) MetaMoji ClassShare cloud API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "~5.8.3",
+    "vitest": "^5.0.0"
+  }
+}
