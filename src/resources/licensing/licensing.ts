@@ -10,46 +10,21 @@
  * `licenseActivation.*`.
  */
 
-import { csEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import type { Result } from "../core/result.js";
+import { csEnvelope } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import type { Result } from "../../core/result.js";
 import type {
-  CsNameValuePair,
   CsRequestBase,
   CsResponseBase,
-  JsonRecord,
-} from "../core/types.js";
-
-export interface InkAmountSyncOptions extends CsRequestBase {
-  update?: JsonRecord;
-}
-
-export interface LicenseListResponse extends CsResponseBase {
-  licenseList?: unknown[];
-  result?: string;
-  version?: string;
-}
-
-export interface PurchaseOptions extends CsRequestBase {
-  /** Query parameters, as the field is named in the Java params class. */
-  m_paramDic?: CsNameValuePair[];
-}
-
-export interface PurchaseResponse extends CsResponseBase {
-  result?: string;
-  version?: string;
-}
-
-export interface ProductLicenseSyncOptions extends CsRequestBase {
-  update?: JsonRecord;
-}
-
-export interface ShareInfoResponse extends CsResponseBase {
-  hasBaseLicense?: boolean;
-  message?: string;
-  result?: string;
-  version?: string;
-}
+} from "../../core/types.js";
+import type {
+  InkAmountSyncOptions,
+  LicenseListResponse,
+  ProductLicenseSyncOptions,
+  PurchaseOptions,
+  PurchaseResponse,
+  ShareInfoResponse,
+} from "./interfaces.js";
 
 export class Licensing {
   constructor(private readonly ctx: MetamojiContext) {}
