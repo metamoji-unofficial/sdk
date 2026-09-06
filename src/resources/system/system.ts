@@ -9,28 +9,15 @@
  * `distribute.postCrashLogs`.
  */
 
-import { csEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import { fail, ok, type Result } from "../core/result.js";
-import type { CsRequestBase, CsResponseBase } from "../core/types.js";
-
-export interface MaintenanceInfo extends CsResponseBase {
-  /** The notice text, verbatim. The response is text, not JSON. */
-  maintMessage?: string;
-  isUnderMaintenance?: boolean;
-}
-
-export interface AddApiLogOptions extends CsRequestBase {
-  logList?: unknown[];
-}
-
-export interface PostCrashLogsOptions extends CsRequestBase {
-  companyId?: string;
-  /** The log itself, as a string. The app sends a file's contents here. */
-  fileEntity?: string;
-  keyword?: string;
-  userId?: string;
-}
+import { csEnvelope } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import { fail, ok, type Result } from "../../core/result.js";
+import type { CsRequestBase, CsResponseBase } from "../../core/types.js";
+import type {
+  AddApiLogOptions,
+  MaintenanceInfo,
+  PostCrashLogsOptions,
+} from "./interfaces.js";
 
 export class System {
   constructor(private readonly ctx: MetamojiContext) {}
