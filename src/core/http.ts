@@ -118,7 +118,12 @@ export class MetamojiContext {
       case "root":
         return ok(joinUrl(c.rootServer, path));
       case "dc":
-        return ok(joinUrl(c.dcServer, path));
+        // `ModelInfo$BuildOptions.DIGITAL_CABINET_URL_BASE()` returns
+        // `CsCloudServiceContext.getRestHost()` — the *tenant's* host, not the
+        // bootstrap root. Sent to the root server, `cosmos/*` answers 404.
+        // Before login there is no tenant yet, and the configured default is
+        // the only address there is.
+        return ok(joinUrl(c.dcServer ?? c.restHost ?? c.rootServer, path));
       case "cdn":
         return ok(joinUrl(c.cdnServer, path));
       case "mazecCdn":

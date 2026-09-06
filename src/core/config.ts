@@ -174,8 +174,10 @@ export interface MetamojiSession {
 }
 
 export interface ResolvedConfig extends Required<Omit<MetamojiConfig,
-  "restHost" | "homeDir" | "floraServer" | "maintenanceUrl" | "syncMaintenanceUrl" | "fetch" | "transport" | "session" | "device" | "deviceId" | "deviceCode">> {
+  "restHost" | "homeDir" | "floraServer" | "maintenanceUrl" | "syncMaintenanceUrl" | "fetch" | "transport" | "session" | "device" | "deviceId" | "deviceCode" | "dcServer">> {
   restHost?: string;
+  /** Unset until the caller names one; `dc` then follows `restHost`. */
+  dcServer?: string;
   homeDir?: string;
   floraServer?: string;
   maintenanceUrl?: string;
@@ -200,7 +202,11 @@ export function resolveConfig(config: MetamojiConfig = {}): ResolvedConfig {
   return {
     rootServer: withTrailingSlash(config.rootServer ?? DEFAULT_ROOT_SERVER),
     restHost: config.restHost ? withTrailingSlash(config.restHost) : undefined,
-    dcServer: withTrailingSlash(config.dcServer ?? config.rootServer ?? DEFAULT_ROOT_SERVER),
+    // Left unset unless the caller names one: `dc` resolves to the tenant's
+    // REST host once login has provided it. Defaulting it to the root server
+    // here would fix it there for the life of the client, and `cosmos/*` on
+    // the root server is a 404.
+    dcServer: config.dcServer ? withTrailingSlash(config.dcServer) : undefined,
     homeDir: config.homeDir ? withTrailingSlash(config.homeDir) : undefined,
     floraServer: config.floraServer,
     cdnServer: withTrailingSlash(config.cdnServer ?? DEFAULT_CDN_SERVER),
