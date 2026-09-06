@@ -9,15 +9,13 @@
  */
 
 import {
-  joinUrl,
   resolveConfig,
-  withQuery,
-  withTrailingSlash,
   type BaseTarget,
   type MetamojiConfig,
   type MetamojiSession,
   type ResolvedConfig,
 } from "./config.js";
+import { joinUrl, withQuery, withTrailingSlash } from "./url.js";
 import { CookieJar, type SessionScope } from "./cookies.js";
 import { buildMultipart, type MultipartPart } from "./multipart.js";
 import { fail, failFrom, ok, type Result } from "./result.js";

@@ -25,25 +25,25 @@ import type { MetamojiConfig, MetamojiSession } from "./core/config.js";
 import { MetamojiContext } from "./core/http.js";
 import type { SessionScope } from "./core/cookies.js";
 
-import { Auth } from "./resources/auth.js";
-import { ClassBoxes } from "./resources/classbox.js";
-import { ClientSettings } from "./resources/settings.js";
-import { Distribute } from "./resources/distribute.js";
-import { Drives, Links } from "./resources/drives.js";
-import { DirectMessages } from "./resources/messages.js";
-import { GalleryMedia } from "./resources/media.js";
-import { Gradebook } from "./resources/gradebook.js";
-import { LibraryStore } from "./resources/library-store.js";
-import { LicenseActivation } from "./resources/license-activation.js";
-import { Licensing } from "./resources/licensing.js";
-import { RemoteConverter } from "./resources/converter.js";
-import { Rooms } from "./resources/rooms.js";
-import { Sync } from "./resources/sync.js";
-import { SysInfo } from "./resources/sysinfo.js";
-import { System } from "./resources/system.js";
-import { Users } from "./resources/users.js";
-import { VideoNotes } from "./resources/video.js";
-import { WebDav } from "./resources/webdav.js";
+import { Auth } from "./resources/auth/auth.js";
+import { ClassBoxes } from "./resources/classbox/classbox.js";
+import { ClientSettings } from "./resources/settings/settings.js";
+import { Distribute } from "./resources/distribute/distribute.js";
+import { Drives, Links } from "./resources/drives/drives.js";
+import { DirectMessages } from "./resources/messages/messages.js";
+import { GalleryMedia } from "./resources/media/media.js";
+import { Gradebook } from "./resources/gradebook/gradebook.js";
+import { LibraryStore } from "./resources/library-store/library-store.js";
+import { LicenseActivation } from "./resources/license-activation/license-activation.js";
+import { Licensing } from "./resources/licensing/licensing.js";
+import { RemoteConverter } from "./resources/converter/converter.js";
+import { Rooms } from "./resources/rooms/rooms.js";
+import { Sync } from "./resources/sync/sync.js";
+import { SysInfo } from "./resources/sysinfo/sysinfo.js";
+import { System } from "./resources/system/system.js";
+import { Users } from "./resources/users/users.js";
+import { VideoNotes } from "./resources/video/video.js";
+import { WebDav } from "./resources/webdav/webdav.js";
 
 export class Metamoji {
   /** Shared configuration, session identity, cookies and transport. */
