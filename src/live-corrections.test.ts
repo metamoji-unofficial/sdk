@@ -22,6 +22,7 @@ interface Reply {
   status?: number;
   json?: unknown;
   bytes?: Uint8Array;
+  setCookie?: string[];
 }
 
 function stub(replies: Reply[] | Reply = {}) {
@@ -51,7 +52,7 @@ function stub(replies: Reply[] | Reply = {}) {
       status: reply.status ?? 200,
       statusText: "",
       headers,
-      setCookie: [],
+      setCookie: reply.setCookie ?? [],
       body,
     };
     return response;
@@ -460,5 +461,21 @@ describe("a lapsed SdCloudService session on a download", () => {
       "/rest/users/login",
       "/rest/drives/D/documents/DOC/data",
     ]);
+  });
+});
+
+describe("WebDAV against a server that is not MetaMoJi's", () => {
+  it("keeps its cookies out of the jar holding the session", async () => {
+    // `NwWebDAVRequest` is reused verbatim for whatever WebDAV server a user
+    // configures (drive/webdav.tsp). It authenticates with Basic and an app
+    // code, so it has no session of its own to keep — but it was filing
+    // responses in the `cs` jar, which is where the MetaMoJi session lives.
+    const { transport } = stub({ status: 200, setCookie: ["JSESSIONID=theirs; Path=/"] });
+    const metamoji = new Metamoji({ transport });
+
+    await metamoji.webdav.get("https://someone-elses-nas.example/note-1");
+
+    expect(metamoji.context.cookies.has("cs")).toBe(false);
+    expect(metamoji.context.cookies.has("webdav")).toBe(true);
   });
 });
