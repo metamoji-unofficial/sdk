@@ -5,37 +5,18 @@
  * where the server holds a URL and the bytes live wherever that points.
  */
 
-import { csEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import type { Result } from "../core/result.js";
-import type { CsRequestBase, CsResponseBase, JsonRecord } from "../core/types.js";
-
-export interface GetClientSettingsOptions extends CsRequestBase {
-  /** Keys to read. */
-  key?: string[];
-}
-
-export interface GetClientSettingsResponse extends CsResponseBase {
-  keyValue?: JsonRecord;
-}
-
-export interface SetClientSettingsOptions extends CsRequestBase {
-  keyValue?: JsonRecord;
-}
-
-export interface GetClientFileOptions extends CsRequestBase {
-  key?: string;
-}
-
-export interface GetClientFileResponse extends CsResponseBase {
-  /** Where the file actually is; fetch it separately. */
-  url?: string;
-}
-
-export interface SetClientFileOptions extends CsRequestBase {
-  key?: string;
-  url?: string;
-}
+import { csEnvelope } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import type { Result } from "../../core/result.js";
+import type { CsResponseBase } from "../../core/types.js";
+import type {
+  GetClientFileOptions,
+  GetClientFileResponse,
+  GetClientSettingsOptions,
+  GetClientSettingsResponse,
+  SetClientFileOptions,
+  SetClientSettingsOptions,
+} from "./interfaces.js";
 
 export class ClientSettings {
   constructor(private readonly ctx: MetamojiContext) {}
