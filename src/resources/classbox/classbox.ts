@@ -6,45 +6,19 @@
  * works against it afterwards.
  */
 
-import { csEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import type { Result } from "../core/result.js";
-import type { CsClassBoxJoinStatus, CsRequestBase, CsResponseBase } from "../core/types.js";
-
-export interface CreateClassBoxOptions extends CsRequestBase {
-  groupName?: string;
-}
-
-export interface CreateClassBoxResponse extends CsResponseBase {
-  driveId?: string;
-  groupId?: string;
-}
-
-export interface JoinClassBoxOptions extends CsRequestBase {
-  joinCode?: string;
-}
-
-export interface JoinClassBoxResponse extends CsResponseBase {
-  driveId?: string;
-}
-
-export interface UpdateClassBoxOptions extends CsRequestBase {
-  driveId?: string;
-  /** `NO_VALUE` leaves the current setting alone. */
-  joinEnabled?: CsClassBoxJoinStatus;
-  name?: string;
-}
-
-export interface GetClassCodeOptions extends CsRequestBase {
-  driveId?: string;
-  /** Rotates the code, invalidating the previous one. */
-  updateJoinCode?: boolean;
-}
-
-export interface GetClassCodeResponse extends CsResponseBase {
-  joinCode?: string;
-  joinEnabled?: boolean;
-}
+import { csEnvelope } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import type { Result } from "../../core/result.js";
+import type { CsResponseBase } from "../../core/types.js";
+import type {
+  CreateClassBoxOptions,
+  CreateClassBoxResponse,
+  GetClassCodeOptions,
+  GetClassCodeResponse,
+  JoinClassBoxOptions,
+  JoinClassBoxResponse,
+  UpdateClassBoxOptions,
+} from "./interfaces.js";
 
 export class ClassBoxes {
   constructor(private readonly ctx: MetamojiContext) {}
