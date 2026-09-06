@@ -6,14 +6,13 @@
  * that normally has none — see `core/transport.ts`.
  */
 
-import { csEnvelope } from "../core/envelope.js";
-import type { MetamojiContext } from "../core/http.js";
-import type { Result } from "../core/result.js";
-import type { CsRequestBase, CsResponseBase } from "../core/types.js";
-
-export interface DirectMessageResponse extends CsResponseBase {
-  message?: string;
-}
+import { csEnvelope } from "../../core/envelope.js";
+import type { MetamojiContext } from "../../core/http.js";
+import type { Result } from "../../core/result.js";
+import type { CsRequestBase, CsResponseBase } from "../../core/types.js";
+import type {
+  DirectMessageResponse,
+} from "./interfaces.js";
 
 export class DirectMessages {
   constructor(private readonly ctx: MetamojiContext) {}
