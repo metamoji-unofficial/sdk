@@ -10,6 +10,7 @@
  */
 
 import type { FetchLike, Transport } from "./transport.js";
+import { withTrailingSlash } from "./url.js";
 
 /** Bootstrap host. `ModelInfo$BuildOptions.DIGITAL_CABINET_URL_ROOT`. */
 export const DEFAULT_ROOT_SERVER = "https://mps.metamoji.com/";
@@ -173,8 +174,10 @@ export interface MetamojiSession {
 }
 
 export interface ResolvedConfig extends Required<Omit<MetamojiConfig,
-  "restHost" | "homeDir" | "floraServer" | "maintenanceUrl" | "syncMaintenanceUrl" | "fetch" | "transport" | "session" | "device" | "deviceId" | "deviceCode">> {
+  "restHost" | "homeDir" | "floraServer" | "maintenanceUrl" | "syncMaintenanceUrl" | "fetch" | "transport" | "session" | "device" | "deviceId" | "deviceCode" | "dcServer">> {
   restHost?: string;
+  /** Unset until the caller names one; `dc` then follows `restHost`. */
+  dcServer?: string;
   homeDir?: string;
   floraServer?: string;
   maintenanceUrl?: string;
@@ -199,7 +202,11 @@ export function resolveConfig(config: MetamojiConfig = {}): ResolvedConfig {
   return {
     rootServer: withTrailingSlash(config.rootServer ?? DEFAULT_ROOT_SERVER),
     restHost: config.restHost ? withTrailingSlash(config.restHost) : undefined,
-    dcServer: withTrailingSlash(config.dcServer ?? config.rootServer ?? DEFAULT_ROOT_SERVER),
+    // Left unset unless the caller names one: `dc` resolves to the tenant's
+    // REST host once login has provided it. Defaulting it to the root server
+    // here would fix it there for the life of the client, and `cosmos/*` on
+    // the root server is a 404.
+    dcServer: config.dcServer ? withTrailingSlash(config.dcServer) : undefined,
     homeDir: config.homeDir ? withTrailingSlash(config.homeDir) : undefined,
     floraServer: config.floraServer,
     cdnServer: withTrailingSlash(config.cdnServer ?? DEFAULT_CDN_SERVER),
@@ -224,29 +231,4 @@ export function resolveConfig(config: MetamojiConfig = {}): ResolvedConfig {
     dropBodyOnGet: config.dropBodyOnGet ?? false,
     autoLogin: config.autoLogin ?? true,
   };
-}
-
-export function withTrailingSlash(url: string): string {
-  return url.endsWith("/") ? url : `${url}/`;
-}
-
-/** Joins a base and a path without doubling or dropping the separator. */
-export function joinUrl(base: string, path: string): string {
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(path)) return path;
-  return withTrailingSlash(base) + path.replace(/^\/+/, "");
-}
-
-/** Appends query parameters, skipping ones that are unset. */
-export function withQuery(
-  url: string,
-  query: Record<string, string | number | boolean | undefined | null> | undefined,
-): string {
-  if (!query) return url;
-  const pairs: string[] = [];
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || value === null) continue;
-    pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
-  }
-  if (pairs.length === 0) return url;
-  return url + (url.includes("?") ? "&" : "?") + pairs.join("&");
 }

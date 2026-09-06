@@ -1,0 +1,89 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "publish を --dry-run で実行する (npm には公開されない)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # setup-node は publish に必要な .npmrc (registry + NODE_AUTH_TOKEN) を書く。
+      # 依存の解決は bun.lock があるので bun 側に任せる。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          # タグから来た場合は package.json とタグがずれていないことを確認する。
+          # ずれたまま公開すると、タグの指す中身と npm 上のバージョンが食い違う。
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag_version="${GITHUB_REF_NAME#v}"
+            if [ "$tag_version" != "$version" ]; then
+              echo "::error::タグ ($GITHUB_REF_NAME) と package.json のバージョン ($version) が一致しません" >&2
+              exit 1
+            fi
+          fi
+
+      - name: Check if already published
+        id: published
+        run: |
+          set -euo pipefail
+          name=$(node -p "require('./package.json').name")
+          version="${{ steps.version.outputs.version }}"
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$name@$version は既に公開済みのためスキップします"
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: steps.published.outputs.already == 'false'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          # スコープ付きパッケージ (@metamoji/sdk) は既定で private 扱いになる。
+          npm publish --access public ${{ inputs.dry_run && '--dry-run' || '' }}

@@ -8,6 +8,7 @@
  */
 
 export { Metamoji } from "./client.js";
+export { newDeviceCode } from "./resources/rooms/rooms.js";
 
 export type {
   BaseTarget,
@@ -56,42 +57,42 @@ export type {
 export { md5 } from "./core/md5.js";
 
 // Resource classes, for wiring one up against a context of your own.
-export { Auth } from "./resources/auth.js";
-export { ClassBoxes } from "./resources/classbox.js";
-export { ClientSettings } from "./resources/settings.js";
-export { Distribute } from "./resources/distribute.js";
-export { DirectMessages } from "./resources/messages.js";
-export { Drives, Links } from "./resources/drives.js";
-export { GalleryMedia } from "./resources/media.js";
-export { Gradebook } from "./resources/gradebook.js";
-export { LibraryStore } from "./resources/library-store.js";
-export { LicenseActivation } from "./resources/license-activation.js";
-export { Licensing } from "./resources/licensing.js";
-export { RC_CONVERTING, RC_NO_LICENSE, RemoteConverter } from "./resources/converter.js";
-export { Rooms } from "./resources/rooms.js";
-export { Sync } from "./resources/sync.js";
-export { SysInfo } from "./resources/sysinfo.js";
-export { System } from "./resources/system.js";
-export { Users } from "./resources/users.js";
-export { VideoNotes } from "./resources/video.js";
-export { METAMOJI_PROP_NS, WebDav } from "./resources/webdav.js";
+export { Auth } from "./resources/auth/auth.js";
+export { ClassBoxes } from "./resources/classbox/classbox.js";
+export { ClientSettings } from "./resources/settings/settings.js";
+export { Distribute } from "./resources/distribute/distribute.js";
+export { DirectMessages } from "./resources/messages/messages.js";
+export { Drives, Links } from "./resources/drives/drives.js";
+export { GalleryMedia } from "./resources/media/media.js";
+export { Gradebook } from "./resources/gradebook/gradebook.js";
+export { LibraryStore } from "./resources/library-store/library-store.js";
+export { LicenseActivation } from "./resources/license-activation/license-activation.js";
+export { Licensing } from "./resources/licensing/licensing.js";
+export { RC_CONVERTING, RC_NO_LICENSE, RemoteConverter } from "./resources/converter/converter.js";
+export { Rooms } from "./resources/rooms/rooms.js";
+export { Sync } from "./resources/sync/sync.js";
+export { SysInfo } from "./resources/sysinfo/sysinfo.js";
+export { System } from "./resources/system/system.js";
+export { Users } from "./resources/users/users.js";
+export { VideoNotes } from "./resources/video/video.js";
+export { METAMOJI_PROP_NS, WebDav } from "./resources/webdav/webdav.js";
 
-export type * from "./resources/auth.js";
-export type * from "./resources/classbox.js";
-export type * from "./resources/converter.js";
-export type * from "./resources/distribute.js";
-export type * from "./resources/drives.js";
-export type * from "./resources/gradebook.js";
-export type * from "./resources/library-store.js";
-export type * from "./resources/license-activation.js";
-export type * from "./resources/licensing.js";
-export type * from "./resources/media.js";
-export type * from "./resources/messages.js";
-export type * from "./resources/rooms.js";
-export type * from "./resources/settings.js";
-export type * from "./resources/sync.js";
-export type * from "./resources/sysinfo.js";
-export type * from "./resources/system.js";
-export type * from "./resources/users.js";
-export type * from "./resources/video.js";
-export type * from "./resources/webdav.js";
+export type * from "./resources/auth/interfaces.js";
+export type * from "./resources/classbox/interfaces.js";
+export type * from "./resources/converter/interfaces.js";
+export type * from "./resources/distribute/interfaces.js";
+export type * from "./resources/drives/interfaces.js";
+export type * from "./resources/gradebook/interfaces.js";
+export type * from "./resources/library-store/interfaces.js";
+export type * from "./resources/license-activation/interfaces.js";
+export type * from "./resources/licensing/interfaces.js";
+export type * from "./resources/media/interfaces.js";
+export type * from "./resources/messages/interfaces.js";
+export type * from "./resources/rooms/interfaces.js";
+export type * from "./resources/settings/interfaces.js";
+export type * from "./resources/sync/interfaces.js";
+export type * from "./resources/sysinfo/interfaces.js";
+export type * from "./resources/system/interfaces.js";
+export type * from "./resources/users/interfaces.js";
+export type * from "./resources/video/interfaces.js";
+export type * from "./resources/webdav/interfaces.js";

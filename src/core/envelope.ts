@@ -78,8 +78,55 @@ export function csEnvelope<T>(result: Result<HttpResult>): Result<T> {
   return ok(withClientFields<T>(body, http));
 }
 
-/** Same shape as `csEnvelope`; named separately so `sync.*` reads honestly. */
-export const sdEnvelope = csEnvelope;
+/**
+ * `SdResponseBase`: the drive service nests its error, and sends it with a 5xx.
+ *
+ * Not the same shape as `csEnvelope`, though it looks like it. A refused
+ * drive login answers **HTTP 500** with
+ *
+ * ```json
+ * {"name":"InvalidUserOrPasswordException",
+ *  "message":"The user or password is invalid.",
+ *  "data":{"errorCode":11000}}
+ * ```
+ *
+ * — the code is under `data`, and the status is not 2xx, so a reader that
+ * looks for a flat `errorCode` on a 2xx body finds neither and reports a bare
+ * "HTTP 500". Every specific error this subsystem has then reads as a server
+ * fault, which is how "wrong password" spent a while looking like an outage.
+ */
+export function sdEnvelope<T>(result: Result<HttpResult>): Result<T> {
+  const body = result.error ? result.error.data : result.data?.json;
+  const nested = readSdError(body);
+  if (nested) {
+    return fail({
+      ...nested,
+      statusCode: result.error?.statusCode ?? result.data?.status,
+      data: body,
+    });
+  }
+  return csEnvelope<T>(result);
+}
+
+/** The `{name, message, data: {errorCode}}` envelope, flat form accepted too. */
+function readSdError(
+  body: unknown,
+): { name: string; message: string; code?: number } | undefined {
+  if (typeof body !== "object" || body === null) return undefined;
+  const envelope = body as {
+    name?: string;
+    message?: string;
+    errorCode?: number;
+    data?: { errorCode?: number };
+  };
+  const code = envelope.data?.errorCode ?? envelope.errorCode;
+  if (typeof code !== "number" || code === 0) return undefined;
+  return {
+    name: envelope.name ?? "application_error",
+    message: envelope.message ?? `Request failed with errorCode ${code}.`,
+    code,
+  };
+}
 
 /** `DvmResultBase`: numeric `errorCode`, plus an app-defined `responseCode`. */
 export function dvmEnvelope<T>(result: Result<HttpResult>): Result<T> {
